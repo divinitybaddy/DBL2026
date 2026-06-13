@@ -1,4 +1,4 @@
-# 🏸 TournamentHub
+# 🏸 DBL2026
 
 A mobile-friendly, live-scoring tournament manager that works entirely in the browser.  
 **No server. No database. No install.** Just a single HTML file hosted on GitHub Pages.
