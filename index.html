@@ -1,0 +1,2299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Tournament Hub</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+<style>
+/* ─── RESET & BASE ─────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{font-size:16px;scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#f2f2f7;color:#1c1c1e;min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ─── LANDING ──────────────────────────────────────────────────────── */
+#landing{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:env(safe-area-inset-top,0) 0 80px;background:#f2f2f7}
+.landing-hero{width:100%;background:linear-gradient(160deg,#0a84ff 0%,#005bb5 100%);padding:48px 20px 36px;text-align:center;color:#fff}
+.landing-logo{font-size:2rem;font-weight:800;letter-spacing:-1px;margin-bottom:4px}
+.landing-logo span{opacity:.85}
+.landing-sub{font-size:.8rem;opacity:.7;letter-spacing:.5px;text-transform:uppercase}
+.landing-content{width:100%;max-width:600px;padding:20px 16px 0;margin:0 auto}
+.landing-section-title{font-size:.72rem;font-weight:700;color:#8e8e93;text-transform:uppercase;letter-spacing:.5px;margin:20px 0 8px 4px}
+.t-list{display:flex;flex-direction:column;gap:1px;background:#e5e5ea;border-radius:12px;overflow:hidden}
+.t-card{background:#fff;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .1s;position:relative;text-decoration:none;color:inherit}
+.t-card:active{background:#f2f2f7}
+.t-card-icon{font-size:1.6rem;width:44px;height:44px;border-radius:10px;background:#f2f2f7;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.t-card-body{flex:1;min-width:0}
+.t-card-name{font-size:.95rem;font-weight:600;color:#1c1c1e;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-card-meta{font-size:.72rem;color:#8e8e93;display:flex;gap:8px;flex-wrap:wrap}
+.t-card-chevron{color:#c7c7cc;font-size:.9rem}
+.new-t-btn{width:100%;background:#fff;border:none;border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-top:8px;font-family:inherit;transition:background .1s}
+.new-t-btn:active{background:#f2f2f7}
+.new-t-btn-icon{width:44px;height:44px;border-radius:10px;background:#e8f1ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#0a84ff;font-size:1.2rem}
+.new-t-btn-label{font-size:.95rem;font-weight:600;color:#0a84ff;text-align:left}
+.landing-footer{font-size:.7rem;color:#aeaeb2;text-align:center;padding:16px}
+
+/* ─── GATE ─────────────────────────────────────────────────────────── */
+#gate{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#0a84ff 0%,#005bb5 100%);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 0 env(safe-area-inset-bottom,0)}
+#gate.gone{display:none}
+.gate-sheet{background:#fff;border-radius:24px 24px 0 0;padding:28px 24px calc(env(safe-area-inset-bottom,0) + 24px);width:100%;max-width:500px;margin:0 auto}
+.gate-handle{width:36px;height:4px;background:#e5e5ea;border-radius:2px;margin:0 auto 20px}
+.gate-hero{text-align:center;margin-bottom:24px}
+.gate-emoji{font-size:2.5rem;display:block;margin-bottom:6px}
+.gate-title{font-size:1.2rem;font-weight:700;color:#1c1c1e}
+.gate-sub{font-size:.78rem;color:#8e8e93;margin-top:3px}
+.gate-submit{width:100%;padding:15px;background:#0a84ff;color:#fff;border:none;border-radius:13px;font-size:1rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px}
+.gate-submit:active{background:#0068d0;transform:scale(.98)}
+.gate-submit.secondary{background:#f2f2f7;color:#0a84ff}
+.gate-submit.secondary:active{background:#e5e5ea}
+.gate-pw-field{position:relative;margin-bottom:8px}
+.gate-pw-field input{width:100%;padding:14px 46px 14px 16px;border:1.5px solid #e5e5ea;border-radius:13px;font-size:1rem;outline:none;font-family:inherit;background:#f9f9f9;transition:border-color .15s}
+.gate-pw-field input:focus{border-color:#0a84ff;background:#fff}
+.gate-pw-field input.err{border-color:#ff3b30;animation:shake .3s}
+.gate-pw-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#aeaeb2;font-size:1.1rem;padding:4px}
+.gate-err{font-size:.78rem;color:#ff3b30;min-height:16px;margin-bottom:8px;padding-left:4px}
+.gate-divider{display:flex;align-items:center;gap:10px;margin:12px 0;color:#aeaeb2;font-size:.75rem}
+.gate-divider::before,.gate-divider::after{content:'';flex:1;height:1px;background:#e5e5ea}
+.gate-back{background:none;border:none;font-size:.82rem;color:#8e8e93;cursor:pointer;font-family:inherit;padding:8px 0;width:100%;text-align:center}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+
+/* ─── APP SHELL ─────────────────────────────────────────────────────── */
+#app{display:none}
+#app.visible{display:flex;flex-direction:column;min-height:100vh}
+.app-header{background:#fff;border-bottom:1px solid #e5e5ea;padding:12px 16px 12px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;padding-top:calc(env(safe-area-inset-top,0) + 12px)}
+.app-logo{font-size:.95rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;color:#1c1c1e;white-space:nowrap}
+.app-logo:active{opacity:.7}
+.app-tname{font-size:.8rem;color:#8e8e93;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.app-role-badge{font-size:.68rem;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.rb-admin{background:#e6f7ee;color:#1a7a3a}
+.rb-viewer{background:#e8f1ff;color:#0047a3}
+.app-header-right{display:flex;gap:4px;align-items:center;flex-shrink:0}
+#mode-banner{font-size:.78rem}
+.admin-banner-bar{background:#e6f7ee;border-bottom:1px solid #a7e3bc;padding:8px 16px;display:flex;align-items:center;gap:8px;color:#1a7a3a}
+.viewer-banner-bar{background:#e8f1ff;border-bottom:1px solid #b8d4ff;padding:8px 16px;display:flex;align-items:center;gap:8px;color:#0047a3}
+
+/* ─── BOTTOM TAB BAR (mobile) ──────────────────────────────────────── */
+.tabs-bar{display:flex;background:#fff;border-top:1px solid #e5e5ea;position:fixed;bottom:0;left:0;right:0;z-index:99;padding-bottom:env(safe-area-inset-bottom,0)}
+.tab{flex:1;padding:8px 4px 6px;border:none;font-size:.6rem;font-weight:600;cursor:pointer;background:transparent;color:#8e8e93;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit;min-width:0}
+.tab i{font-size:1.3rem;line-height:1}
+.tab span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
+.tab:active{opacity:.6}
+.tab.active{color:#0a84ff}
+.tab.active i{color:#0a84ff}
+.section{display:none}.section.active{display:block}
+.wrap{max-width:700px;margin:0 auto;padding:16px 16px calc(env(safe-area-inset-bottom,0) + 76px)}
+
+/* ─── MODALS ────────────────────────────────────────────────────────── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:20px 20px calc(env(safe-area-inset-bottom,0) + 20px);width:100%;max-width:600px;max-height:88vh;overflow-y:auto}
+.modal-title{font-size:.95rem;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:8px;color:#1c1c1e}
+.modal-drag{width:36px;height:4px;background:#e5e5ea;border-radius:2px;margin:0 auto 16px}
+
+/* ─── CARDS ─────────────────────────────────────────────────────────── */
+.card{background:#fff;border-radius:13px;padding:16px;margin-bottom:12px}
+.card-title{font-size:.85rem;font-weight:700;margin-bottom:.75rem;color:#1c1c1e;display:flex;align-items:center;gap:6px}
+.section-label{font-size:.72rem;font-weight:700;color:#8e8e93;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px 4px}
+
+/* ─── FORMS ─────────────────────────────────────────────────────────── */
+label{font-size:.75rem;color:#6c6c70;display:block;margin-bottom:3px;font-weight:500}
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=password],input[type=url],select,textarea{
+  width:100%;margin-bottom:10px;font-size:1rem;padding:12px 13px;border:1.5px solid #e5e5ea;border-radius:11px;
+  background:#fff;color:#1c1c1e;outline:none;font-family:inherit;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:#0a84ff;box-shadow:0 0 0 3px rgba(10,132,255,.12)}
+input[type=number]{-moz-appearance:textfield}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:16px;padding-right:36px}
+
+/* ─── BUTTONS ─────────────────────────────────────────────────────────── */
+.btn{padding:10px 16px;border-radius:10px;border:1.5px solid #e5e5ea;font-size:.85rem;cursor:pointer;font-weight:600;background:#fff;color:#1c1c1e;transition:all .15s;display:inline-flex;align-items:center;gap:6px;font-family:inherit;line-height:1;white-space:nowrap}
+.btn:active{opacity:.7;transform:scale(.97)}
+.btn-primary{background:#0a84ff;color:#fff;border-color:transparent}
+.btn-success{background:#30d158;color:#fff;border-color:transparent}
+.btn-danger{background:#ff3b30;color:#fff;border-color:transparent}
+.btn-warn{background:#ff9f0a;color:#fff;border-color:transparent}
+.btn-ghost{background:transparent;border-color:transparent;color:#8e8e93}
+.btn-ghost:active{background:#f2f2f7}
+.btn-sm{padding:7px 12px;font-size:.78rem;border-radius:8px}
+.btn-xs{padding:4px 8px;font-size:.72rem;border-radius:7px}
+.btn-block{width:100%;justify-content:center}
+
+/* ─── GRID ──────────────────────────────────────────────────────────── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* ─── BADGES ────────────────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:.68rem;padding:3px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
+.bf{background:#fce8f0;color:#9b1d55}
+.bm{background:#e8f1ff;color:#0064cc}
+.bw{background:#fff4e6;color:#c45000}
+.bs{background:#e6f7ee;color:#1a7a3a}
+.bp{background:#f3e8ff;color:#6b21a8}
+.bg{background:#f2f2f7;color:#8e8e93}
+.be{background:#fff0f0;color:#c00}
+
+/* ─── STAT BOXES ─────────────────────────────────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat-box{background:#f2f2f7;border-radius:11px;padding:12px 8px;text-align:center}
+.stat-val{font-size:1.5rem;font-weight:700;color:#1c1c1e;line-height:1}
+.stat-lbl{font-size:.68rem;color:#8e8e93;margin-top:3px}
+
+/* ─── MATCH ROW ─────────────────────────────────────────────────────── */
+.match-row{background:#fff;border-radius:13px;padding:14px;margin-bottom:10px}
+.match-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.match-num{width:28px;height:28px;border-radius:50%;background:#e8f1ff;color:#0064cc;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}
+.match-title{font-size:.9rem;font-weight:700;color:#1c1c1e}
+.match-role{font-size:.7rem;color:#8e8e93;background:#f2f2f7;padding:2px 8px;border-radius:6px}
+.sets-area{background:#f9f9fb;border-radius:10px;padding:10px;margin-bottom:10px}
+.sets-header{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.sets-list{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.set-block{display:flex;align-items:center;gap:4px;background:#fff;border:1.5px solid #e5e5ea;border-radius:9px;padding:6px 8px}
+.set-block.decided{background:#f0fff4;border-color:#a7e3bc}
+.set-block.skipped{opacity:.45;pointer-events:none;background:#f5f5f7}
+.set-label{font-size:.7rem;font-weight:700;color:#8e8e93;min-width:18px;text-align:center}
+.set-block input{width:48px;margin:0;padding:5px 6px;font-size:.95rem;text-align:center;border:1.5px solid #e5e5ea;border-radius:7px;background:#fff}
+.set-del{background:none;border:none;cursor:pointer;color:#d1d1d6;font-size:1rem;padding:0 0 0 2px;line-height:1}
+.set-add-btn{display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;border:1.5px dashed #0a84ff;background:transparent;color:#0a84ff;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit}
+.set-winner{font-size:.75rem;font-weight:700;color:#1a7a3a;display:flex;align-items:center;gap:4px}
+.set-skipped-note{font-size:.7rem;color:#aeaeb2;font-style:italic}
+
+/* ─── SCHEDULE ──────────────────────────────────────────────────────── */
+.sched-card{background:#fff;border-radius:12px;padding:13px 14px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.sched-card:active{background:#f9f9fb}
+.phase-pill{font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px}
+.ph-group{background:#e8f1ff;color:#0064cc}
+.ph-sf{background:#f3e8ff;color:#6b21a8}
+.ph-final{background:#fff4e6;color:#c45000}
+.ph-third{background:#e6f7ee;color:#1a7a3a}
+.phase-tab,.group-tab{padding:7px 14px;border-radius:8px;border:1.5px solid #e5e5ea;font-size:.78rem;font-weight:600;cursor:pointer;background:#fff;color:#8e8e93;font-family:inherit;transition:all .15s}
+.phase-tab.active,.group-tab.active{background:#0a84ff;color:#fff;border-color:transparent}
+.timeline-date{font-size:.7rem;font-weight:700;color:#0a84ff;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px 2px;display:flex;align-items:center;gap:6px}
+.timeline-date::after{content:'';flex:1;height:1px;background:#e5e5ea}
+
+/* ─── STANDINGS TABLE ───────────────────────────────────────────────── */
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{text-align:left;padding:8px 10px;font-weight:700;border-bottom:1.5px solid #e5e5ea;color:#8e8e93;font-size:.7rem;background:#f9f9fb;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #f2f2f7;color:#1c1c1e}
+tr:last-child td{border-bottom:none}
+tr:active td{background:#f9f9fb}
+.seq-dot{display:inline-block;width:22px;height:22px;border-radius:50%;font-size:.65rem;font-weight:700;text-align:center;line-height:22px;border:1px solid #e5e5ea;color:#8e8e93;background:#f2f2f7}
+.seq-dot.won{background:#e6f7ee;color:#1a7a3a;border-color:transparent}
+.seq-dot.lost{background:#fff0f0;color:#c00;border-color:transparent}
+
+/* ─── BRACKET ────────────────────────────────────────────────────────── */
+.bracket-box{border:1.5px solid #e5e5ea;border-radius:10px;padding:10px 12px;background:#fff;font-size:.82rem;min-width:140px;text-align:center}
+.bracket-box.winner{border-color:#30d158;background:#f0fff4;font-weight:700}
+.bracket-box.tbd{color:#c7c7cc;font-style:italic;background:#fafafa}
+.team-side{background:#f9f9fb;border-radius:10px;padding:10px}
+.team-side-title{font-size:.75rem;font-weight:700;color:#3c3c43;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.players-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.player-row{margin-bottom:6px}
+.player-row label{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.player-row input{margin:0}
+
+/* ─── ALERTS ─────────────────────────────────────────────────────────── */
+.alert{padding:12px 14px;border-radius:10px;font-size:.82rem;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.alert-info{background:#e8f1ff;color:#0047a3}
+.alert-success{background:#e6f7ee;color:#166534}
+.alert-warn{background:#fff4e6;color:#92400e}
+
+/* ─── CHAMPION BANNER ────────────────────────────────────────────────── */
+.champion-banner{background:linear-gradient(135deg,#fffbf0,#fff4e6);border:2px solid #fcd34d;border-radius:16px;padding:20px;text-align:center;margin-bottom:12px}
+
+/* ─── UPLOAD ZONE ────────────────────────────────────────────────────── */
+.upload-zone{border:2px dashed #d1d1d6;border-radius:12px;padding:20px;text-align:center;cursor:pointer;background:#fafafa;position:relative}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* ─── SAVED PILL & SYNC STATUS ──────────────────────────────────────── */
+.saved-pill{font-size:.68rem;color:#1a7a3a;display:inline-flex;align-items:center;gap:3px;padding:2px 8px;background:#e6f7ee;border-radius:20px}
+#sync-status{position:fixed;bottom:calc(env(safe-area-inset-bottom,0) + 68px);right:14px;display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #e5e5ea;border-radius:20px;padding:5px 12px 5px 8px;font-size:.7rem;font-weight:600;box-shadow:0 2px 12px rgba(0,0,0,.1);z-index:98;cursor:pointer;color:#3c3c43}
+#sync-dot{width:8px;height:8px;border-radius:50%;background:#aeaeb2;flex-shrink:0}
+#sync-dot.ok{background:#30d158}
+#sync-dot.syncing{background:#ff9f0a;animation:sdp .8s infinite}
+#sync-dot.error{background:#ff3b30}
+#sync-dot.local{background:#0a84ff}
+@keyframes sdp{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ─── TOAST ──────────────────────────────────────────────────────────── */
+#toast-area{position:fixed;top:calc(env(safe-area-inset-top,0) + 60px);left:50%;transform:translateX(-50%);z-index:9000;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:calc(100% - 32px);max-width:380px}
+.toast{background:#fff;border-radius:12px;padding:11px 14px;font-size:.82rem;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.15);animation:fadeUp .2s;display:flex;align-items:center;gap:8px;color:#1c1c1e}
+.toast.success{border-left:4px solid #30d158}
+.toast.error{border-left:4px solid #ff3b30}
+.toast.info{border-left:4px solid #0a84ff}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── WIZARD ─────────────────────────────────────────────────────────── */
+.wizard-step{border:1.5px solid #e5e5ea;border-radius:13px;padding:14px;margin-bottom:10px;background:#fff}
+.wizard-step-title{font-size:.85rem;font-weight:700;margin-bottom:.75rem;display:flex;align-items:center;gap:8px;padding-bottom:.5rem;border-bottom:1px solid #f2f2f7;color:#1c1c1e}
+.game-config-row{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;padding:10px;border:1.5px solid #e5e5ea;border-radius:10px;background:#f9f9fb;margin-bottom:6px}
+
+/* ─── PREVIEW TABLE ──────────────────────────────────────────────────── */
+.preview-table{width:100%;font-size:.72rem;border-collapse:collapse}
+.preview-table th{background:#f5f5f7;padding:5px 8px;border:1px solid #e5e5ea;font-weight:700;color:#8e8e93}
+.preview-table td{padding:5px 8px;border:1px solid #f2f2f7}
+
+/* ─── ANIMATIONS ─────────────────────────────────────────────────────── */
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────────────── */
+@media(max-width:480px){
+  .g2,.g3{grid-template-columns:1fr}
+  .players-grid{grid-template-columns:1fr}
+  .game-config-row{grid-template-columns:1fr 1fr}
+  .stat-val{font-size:1.2rem}
+  .bracket-box{min-width:110px;font-size:.75rem;padding:8px}
+}
+@media(min-width:640px){
+  .modal-overlay{align-items:center}
+  .modal{border-radius:20px;max-height:85vh}
+  #gate{justify-content:center;padding:0 16px}
+  .gate-sheet{border-radius:20px;padding:28px 28px 28px}
+  #sync-status{bottom:16px}
+  .tabs-bar{position:static;border-top:none;border-bottom:1px solid #e5e5ea;padding:0 16px;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tab{flex:none;flex-direction:row;padding:9px 14px;font-size:.8rem;border-radius:8px;gap:5px}
+  .tab i{font-size:1rem}
+  .tab.active{background:#0a84ff;color:#fff}
+  .tabs-bar{background:#fff;display:flex}
+  .wrap{padding-bottom:24px}
+}
+body.viewer-mode .admin-only{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="toast-area"></div>
+
+<!-- ─── LANDING (Tournament Picker) ─────────────── -->
+<div id="landing">
+  <div class="landing-hero">
+    <div class="landing-logo">🏸 TournamentHub</div>
+    <div class="landing-sub">Select a tournament to get started</div>
+  </div>
+  <div class="landing-content">
+    <div class="landing-section-title">Tournaments</div>
+    <div class="t-list" id="tournament-grid"></div>
+    <button class="new-t-btn" onclick="openNewTModal()">
+      <div class="new-t-btn-icon"><i class="ti ti-plus"></i></div>
+      <div class="new-t-btn-label">New Tournament</div>
+    </button>
+    <div class="landing-footer">Data syncs live via JSONBin · Free &amp; no server needed</div>
+  </div>
+</div>
+
+<!-- ─── ACCESS GATE ─────────────────────────────── -->
+<div id="gate" class="gone">
+  <div class="gate-sheet">
+    <div class="gate-emoji" id="gate-emoji">🏆</div>
+    <div class="gate-title" id="gate-tname">Tournament</div>
+    <div class="gate-sub">Choose your access level</div>
+    <!-- Viewer entry -->
+    <div id="gate-viewer-section">
+      <button class="gate-submit" onclick="gateSubmit()" id="gate-btn">
+        <i class="ti ti-eye"></i> View Live Scores
+      </button>
+      <div class="gate-divider">or</div>
+      <button class="gate-submit secondary" onclick="showAdminGate()">
+        <i class="ti ti-shield-lock"></i> Admin Login
+      </button>
+    </div>
+    <!-- Admin password section -->
+    <div id="gate-admin-section" style="display:none">
+      <div class="gate-pw-field">
+        <input type="password" id="gate-pw" placeholder="Admin password"
+          onkeydown="if(event.key==='Enter')gateAdminSubmit()">
+        <button class="gate-pw-eye" onclick="toggleGatePw()">
+          <i class="ti ti-eye" id="gate-eye-icon"></i>
+        </button>
+      </div>
+      <div class="gate-err" id="gate-err"></div>
+      <button class="gate-submit" onclick="gateAdminSubmit()">
+        <i class="ti ti-shield-check"></i> Enter as Admin
+      </button>
+      <button class="gate-back" onclick="hideAdminGate()">
+        ← Back
+      </button>
+    </div>
+    <button class="gate-back" onclick="backToLanding()">← All tournaments</button>
+  </div>
+</div>
+
+<!-- ─── MAIN APP ─────────────────────────────────── -->
+<div id="app">
+  <div class="app-header">
+    <button class="btn btn-ghost btn-sm" onclick="backToLanding()" style="padding:4px 6px;border-radius:8px;flex-shrink:0">
+      <i class="ti ti-chevron-left" style="font-size:1.2rem"></i>
+    </button>
+    <div class="app-tname" id="app-tname">Tournament</div>
+    <div class="app-role-badge" id="app-role-badge"></div>
+    <div class="app-header-right">
+      <span id="saved-indicator" class="saved-pill" style="display:none"><i class="ti ti-check"></i></span>
+      <button class="btn btn-ghost btn-sm admin-only" onclick="openSyncModal()" style="padding:6px" title="Sync">
+        <i class="ti ti-cloud-upload" style="font-size:1rem"></i>
+      </button>
+      <button class="btn btn-ghost btn-sm admin-only" onclick="openChpw()" style="padding:6px" title="Change password">
+        <i class="ti ti-key" style="font-size:1rem"></i>
+      </button>
+      <button class="btn btn-sm btn-danger admin-only" onclick="doLogout()" style="padding:6px 10px">
+        <i class="ti ti-logout" style="font-size:.9rem"></i>
+      </button>
+      <button class="btn btn-sm btn-primary viewer-login-btn" id="viewer-login-btn" style="display:none;padding:6px 10px" onclick="showGateForAdmin()">
+        <i class="ti ti-shield-lock" style="font-size:.9rem"></i>
+      </button>
+    </div>
+  </div>
+  <div id="mode-banner"></div>
+  <div class="tabs-bar" id="tabs-bar">
+    <button class="tab admin-only" onclick="switchTab('setup')"><i class="ti ti-settings"></i><span>Setup</span></button>
+    <button class="tab" onclick="switchTab('schedule')"><i class="ti ti-calendar"></i><span>Schedule</span></button>
+    <button class="tab" onclick="switchTab('matches')"><i class="ti ti-sword"></i><span>Scores</span></button>
+    <button class="tab" onclick="switchTab('standings')"><i class="ti ti-list-numbers"></i><span>Standings</span></button>
+    <button class="tab" onclick="switchTab('knockout')"><i class="ti ti-tournament"></i><span>Knockout</span></button>
+    <button class="tab" onclick="switchTab('export')"><i class="ti ti-table-export"></i><span>Export</span></button>
+  </div>
+  <div class="wrap">
+    <div id="tab-setup" class="section"></div>
+    <div id="tab-schedule" class="section"></div>
+    <div id="tab-matches" class="section"></div>
+    <div id="tab-standings" class="section"></div>
+    <div id="tab-knockout" class="section"></div>
+    <div id="tab-export" class="section"></div>
+  </div>
+</div>
+
+<!-- ─── NEW TOURNAMENT MODAL ─────────────────────── -->
+<div class="modal-overlay" id="new-t-modal">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <div class="modal-title"><i class="ti ti-plus"></i> Create New Tournament</div>
+
+    <div class="wizard-step">
+      <div class="wizard-step-title"><span style="background:#0071e3;color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0">1</span> Basic Info</div>
+      <label>Tournament name *</label>
+      <input type="text" id="nt-name" placeholder="e.g. Club Badminton Championship 2026" style="font-size:1rem;font-weight:700">
+      <label>Sport / type (optional)</label>
+      <input type="text" id="nt-sport" placeholder="e.g. Badminton, Tennis, Volleyball…">
+      <div class="g2">
+        <div><label>Admin password *</label><input type="password" id="nt-pw" placeholder="Min 4 characters"></div>
+        <div><label>Emoji icon</label><input type="text" id="nt-emoji" value="🏆" maxlength="2" style="font-size:1.5rem;text-align:center"></div>
+      </div>
+    </div>
+
+    <div class="wizard-step">
+      <div class="wizard-step-title"><span style="background:#0071e3;color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0">2</span> Team Roster Size</div>
+      <div class="g2">
+        <div><label>Female players per team</label><input type="number" id="nt-female" min="0" max="20" value="1" placeholder="0"></div>
+        <div><label>Male players per team</label><input type="number" id="nt-male" min="0" max="20" value="8" placeholder="0"></div>
+      </div>
+      <div class="alert alert-info"><i class="ti ti-info-circle"></i> <span>Total player slots per team will be <strong id="nt-slots-preview">9</strong>.</span></div>
+    </div>
+
+    <div class="wizard-step">
+      <div class="wizard-step-title"><span style="background:#0071e3;color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0">3</span> Games (per match)
+        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="addGameRow()"><i class="ti ti-plus"></i> Add game</button>
+      </div>
+      <div id="game-rows-container"></div>
+      <div class="alert alert-warn" style="margin-top:6px"><i class="ti ti-alert-triangle"></i> <span>Configure each game type. You can adjust player slots and scoring type per game.</span></div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn" onclick="closeNewTModal()"><i class="ti ti-x"></i> Cancel</button>
+      <button class="btn btn-primary" onclick="createTournament()"><i class="ti ti-trophy"></i> Create Tournament</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CHANGE PASSWORD MODAL ─────────────────────── -->
+<div class="modal-overlay" id="chpw-overlay">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-drag"></div>
+    <div class="modal-title"><i class="ti ti-key"></i> Change Password</div>
+    <label>Current password</label>
+    <div style="position:relative;margin-bottom:8px"><input class="gate-pw" type="password" id="chpw-cur" placeholder="Current password" style="letter-spacing:1px;text-align:left;width:100%"><button class="gate-eye" onclick="toggleFieldPw('chpw-cur')"><i class="ti ti-eye"></i></button></div>
+    <label>New password <span style="color:#aaa">(min 4 chars)</span></label>
+    <div style="position:relative;margin-bottom:8px"><input class="gate-pw" type="password" id="chpw-new" placeholder="New password" style="letter-spacing:1px;text-align:left;width:100%"><button class="gate-eye" onclick="toggleFieldPw('chpw-new')"><i class="ti ti-eye"></i></button></div>
+    <label>Confirm new password</label>
+    <input class="gate-pw" type="password" id="chpw-con" placeholder="Confirm password" style="letter-spacing:1px;text-align:left;margin-bottom:4px">
+    <div class="gate-err" id="chpw-err"></div>
+    <div style="display:flex;gap:8px;margin-top:.5rem;justify-content:flex-end">
+      <button class="btn" onclick="document.getElementById('chpw-overlay').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="doChangePw()"><i class="ti ti-check"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SYNC MODAL (JSONBin) ─────────────────────── -->
+<div class="modal-overlay" id="sync-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-drag"></div>
+    <div class="modal-title"><i class="ti ti-cloud-upload"></i> Live Sync via JSONBin</div>
+    <div style="font-size:.82rem;color:#555;margin-bottom:1rem;line-height:1.7">
+      Connect a free JSONBin account so scores sync live to all viewers on any device — no server needed.
+    </div>
+
+    <div style="background:#f9f9fb;border:1px solid #e5e5ea;border-radius:12px;padding:1rem;margin-bottom:1rem">
+      <div style="font-size:.82rem;font-weight:700;margin-bottom:.625rem;color:#ff9500"><i class="ti ti-list-numbers"></i> Setup (2 min, completely free)</div>
+      <div style="font-size:.82rem;line-height:2.2;color:#555">
+        <div><span style="background:#0071e3;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;margin-right:8px;flex-shrink:0">1</span>
+          Go to <a href="https://jsonbin.io" target="_blank">jsonbin.io</a> &rarr; Sign up free &rarr; Dashboard &rarr; <strong>API Keys</strong>
+        </div>
+        <div><span style="background:#0071e3;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;margin-right:8px;flex-shrink:0">2</span>
+          Copy your <strong>Master Key</strong> <code style="font-size:.78rem;background:#f5f5f7;padding:2px 7px;border-radius:4px;border:1px solid #e5e5ea">$2a$10$… or $2b$10$…</code>
+        </div>
+        <div><span style="background:#0071e3;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;margin-right:8px;flex-shrink:0">3</span>
+          Paste it below &rarr; click <strong>Connect &amp; Save</strong> &mdash; a bin is auto-created for you
+        </div>
+      </div>
+    </div>
+
+    <div id="jb-connect-form">
+      <label style="font-weight:700;font-size:.82rem"><i class="ti ti-key"></i> JSONBin Master Key</label>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <div style="position:relative;flex:1">
+          <input type="password" id="jb-key-input" placeholder="$2a$ or $2b$ master key from JSONBin" style="margin:0;padding-right:40px;font-family:ui-monospace,monospace;font-size:.8rem">
+          <button style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#aaa;font-size:1rem;padding:0" onclick="toggleFieldPw('jb-key-input')"><i class="ti ti-eye"></i></button>
+        </div>
+        <button class="btn btn-primary" onclick="jbConnect()" id="jb-connect-btn"><i class="ti ti-plug"></i> Connect &amp; Save</button>
+      </div>
+      <div id="jb-connect-status" style="font-size:.78rem;min-height:16px;margin-bottom:.75rem"></div>
+      <details style="margin-bottom:.5rem">
+        <summary style="font-size:.75rem;color:#555;cursor:pointer;user-select:none;padding:4px 0">&#9656; Already have a Bin ID? Paste it here (optional — leave blank to auto-create)</summary>
+        <div style="margin-top:8px">
+          <label>Existing Bin ID</label>
+          <input type="text" id="jb-bin-input" placeholder="e.g. 64a1f3c9acd6cb37b2b36f1a" style="font-family:ui-monospace,monospace;font-size:.8rem">
+        </div>
+      </details>
+    </div>
+
+    <div id="jb-connected-panel" style="display:none">
+      <div class="alert alert-success" style="margin-bottom:.875rem">
+        <i class="ti ti-circle-check" style="font-size:1.2rem;flex-shrink:0"></i>
+        <div>
+          <strong>JSONBin connected!</strong> All score changes push live to viewers automatically.<br>
+          <span style="font-size:.72rem;opacity:.8">Bin ID: <span id="jb-bin-display" style="font-family:ui-monospace,monospace"></span></span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.75rem">
+        <button class="btn btn-sm btn-success" onclick="jbPush(true)"><i class="ti ti-cloud-upload"></i> Push now</button>
+        <button class="btn btn-sm btn-primary" onclick="jbPull(true)"><i class="ti ti-cloud-download"></i> Pull latest</button>
+        <button class="btn btn-sm btn-danger" onclick="jbDisconnect()"><i class="ti ti-plug-x"></i> Disconnect</button>
+      </div>
+      <div id="jb-last-sync" style="font-size:.72rem;color:#555;margin-bottom:.75rem"></div>
+
+      <!-- ── Viewer share link ── -->
+      <div id="jb-share-box" style="display:none;background:#f0f7ff;border:1px solid #b8d4ff;border-radius:10px;padding:.875rem">
+        <div style="font-size:13px;font-weight:700;color:#0047a3;margin-bottom:.375rem;display:flex;align-items:center;gap:6px">
+          <i class="ti ti-link"></i> Share this link with viewers
+        </div>
+        <div style="font-size:12px;color:#555;margin-bottom:.5rem">
+          Anyone with this link can watch scores live — no login, no setup, works on any device.
+        </div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="jb-share-link" readonly
+            style="flex:1;margin:0;font-size:11px;font-family:ui-monospace,monospace;background:#fff;cursor:text;color:#333">
+          <button class="btn btn-sm btn-primary" onclick="copyShareLink()">
+            <i class="ti ti-copy"></i> Copy
+          </button>
+        </div>
+        <div style="font-size:11px;color:#0064cc;margin-top:.375rem">
+          ⚠️ Make sure your JSONBin bin is set to <strong>Public</strong> — check in your JSONBin dashboard.
+        </div>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #e5e5ea;padding-top:1rem;margin-top:1rem">
+      <div style="font-size:.82rem;font-weight:700;margin-bottom:.5rem"><i class="ti ti-database"></i> Local Backup</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-success" onclick="exportJSON()"><i class="ti ti-download"></i> Export .json</button>
+        <label class="btn btn-sm btn-warn" style="cursor:pointer;margin:0"><i class="ti ti-upload"></i> Import .json
+          <input type="file" accept=".json" style="display:none" onchange="importJSON(event)">
+        </label>
+        <button class="btn btn-sm btn-danger admin-only" onclick="clearTournamentData()"><i class="ti ti-trash"></i> Clear match data</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:1rem">
+      <button class="btn" onclick="document.getElementById('sync-modal').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SYNC STATUS PILL ─────────────────────────── -->
+<div id="sync-status" onclick="openSyncModal()" title="JSONBin sync — click to configure" style="display:none">
+  <span id="sync-dot" class="local"></span>
+  <span id="sync-label">Local only</span>
+</div>
+
+<div class="modal-overlay" id="csv-modal">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-file-spreadsheet"></i> <span id="csv-modal-title">Preview</span></div>
+    <div id="csv-modal-body"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:1rem">
+      <button class="btn" onclick="document.getElementById('csv-modal').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONSTANTS & STORAGE KEYS
+// ══════════════════════════════════════════════════════
+const TOURNAMENTS_KEY='thub_tournaments';
+const JB_KEY_STORE='thub_jb_key';    // JSONBin master key (per-browser)
+const JB_BIN_STORE='thub_jb_bin';    // JSONBin bin ID (shared via localStorage)
+const ADMIN_PW_DEFAULT='admin';
+const JB_API='https://api.jsonbin.io/v3';
+const POLL_INTERVAL=6000;            // viewers poll every 6 s
+const PUSH_DEBOUNCE=1600;            // debounce admin saves
+
+// ══════════════════════════════════════════════════════
+// GLOBALS
+// ══════════════════════════════════════════════════════
+let CURRENT_T_ID=null;
+let IS_ADMIN=false;
+let S={};
+let GAMES=[];
+let MALE_KEYS=[];
+let FEMALE_KEYS=[];
+let _jbKey='';            // JSONBin master key
+let _jbBinId='';          // JSONBin bin ID for current tournament
+let _pushTimer=null;
+let _pollTimer=null;
+let _lastRemoteTs=0;
+let _bc=null;
+
+// ══════════════════════════════════════════════════════
+// TOURNAMENT LIST MANAGEMENT
+// ══════════════════════════════════════════════════════
+function getTList(){
+  try{const r=localStorage.getItem(TOURNAMENTS_KEY);return r?JSON.parse(r):[];}
+  catch(e){return[];}
+}
+function saveTList(list){
+  try{localStorage.setItem(TOURNAMENTS_KEY,JSON.stringify(list));}catch(e){}
+}
+function getTState(id){
+  try{const r=localStorage.getItem('thub_state_'+id);if(r){const p=JSON.parse(r);return p.state||null;}}
+  catch(e){}return null;
+}
+function saveTState(id,state){
+  try{localStorage.setItem('thub_state_'+id,JSON.stringify({state,ts:Date.now()}));}
+  catch(e){console.warn('Save failed',e);}
+}
+
+// ══════════════════════════════════════════════════════
+// LANDING PAGE
+// ══════════════════════════════════════════════════════
+function showLanding(){
+  document.getElementById('landing').style.display='flex';
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('sync-status').style.display='none';
+  CURRENT_T_ID=null;IS_ADMIN=false;
+  renderTournamentGrid();
+}
+
+function renderTournamentGrid(){
+  const list=getTList();
+  const grid=document.getElementById('tournament-grid');
+  let h='';
+  list.forEach(t=>{
+    const state=getTState(t.id);
+    const teamCount=state?Object.values(state.teams||{}).reduce((a,b)=>a+(b.length||0),0):0;
+    const matchCount=state?Object.keys(state.matches||{}).length:0;
+    const lastSaved=t.lastSaved?new Date(t.lastSaved).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'Never';
+    h+=`<div class="t-card" onclick="openTournament('${t.id}')">
+      <div class="t-card-icon">${t.emoji||'🏆'}</div>
+      <div class="t-card-body">
+        <div class="t-card-name">${esc(t.name)}</div>
+        <div class="t-card-meta">
+          ${t.sport?`<span>${esc(t.sport)}</span>`:''}
+          <span>${teamCount} teams</span>
+          <span>${matchCount} matches</span>
+          <span>${lastSaved}</span>
+        </div>
+      </div>
+      <button class="btn btn-xs btn-danger admin-only" style="flex-shrink:0" onclick="event.stopPropagation();deleteTournament('${t.id}')"><i class="ti ti-trash"></i></button>
+      <i class="ti ti-chevron-right t-card-chevron"></i>
+    </div>`;
+  });
+  // New tournament button is in HTML, not dynamically added
+  if(!list.length){
+    h='<div style="padding:32px 16px;text-align:center;color:#aeaeb2"><i class="ti ti-trophy" style="font-size:2.5rem;display:block;margin-bottom:8px;color:#e5e5ea"></i>No tournaments yet</div>';
+  }
+  grid.innerHTML=h;
+}
+
+function openTournament(id){
+  CURRENT_T_ID=id;
+  const list=getTList();
+  const meta=list.find(t=>t.id===id);
+  if(!meta)return;
+  // Also load bin ID if stored for this tournament
+  const storedBin=localStorage.getItem(JB_BIN_STORE+'_'+id)||'';
+  if(storedBin&&!_jbBinId) _jbBinId=storedBin;
+  document.getElementById('gate-emoji').textContent=meta.emoji||'🏆';
+  document.getElementById('gate-tname').textContent=meta.name;
+  document.getElementById('landing').style.display='none';
+  document.getElementById('gate').classList.remove('gone');
+  // Reset gate to viewer-first
+  document.getElementById('gate-viewer-section').style.display='block';
+  document.getElementById('gate-admin-section').style.display='none';
+}
+
+function deleteTournament(id){
+  if(!confirm('Delete this tournament and all its data? This cannot be undone.'))return;
+  let list=getTList().filter(t=>t.id!==id);
+  saveTList(list);
+  try{localStorage.removeItem('thub_state_'+id);}catch(e){}
+  renderTournamentGrid();
+  showToast('Tournament deleted','error');
+}
+
+function backToLanding(){
+  stopPolling();
+  if(_bc)try{_bc.close();}catch(e){}
+  _bc=null;
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('gate').classList.add('gone');
+  document.getElementById('sync-status').style.display='none';
+  // If viewer arrived via URL, going "back" reloads landing without ?bin param
+  if(location.search){
+    history.replaceState({},'',location.pathname);
+  }
+  showLanding();
+}
+
+// ══════════════════════════════════════════════════════
+// NEW TOURNAMENT WIZARD
+// ══════════════════════════════════════════════════════
+let _gameRows=[];
+
+function openNewTModal(){
+  _gameRows=getDefaultGames();
+  renderGameRows();
+  // update slot preview
+  document.getElementById('nt-female').oninput=updateSlotPreview;
+  document.getElementById('nt-male').oninput=updateSlotPreview;
+  updateSlotPreview();
+  document.getElementById('new-t-modal').classList.add('open');
+}
+function closeNewTModal(){document.getElementById('new-t-modal').classList.remove('open');}
+
+function updateSlotPreview(){
+  const f=parseInt(document.getElementById('nt-female').value)||0;
+  const m=parseInt(document.getElementById('nt-male').value)||0;
+  document.getElementById('nt-slots-preview').textContent=f+m;
+}
+
+function getDefaultGames(){
+  return [
+    {id:uid(),label:'Mixed doubles',role:'Versatile Openers',slots:[{key:'f1',type:'f'},{key:'m1',type:'m'}],defSets:3,winSets:2,special:false,pts:0},
+    {id:uid(),label:'Singles',role:'Speed Specialist',slots:[{key:'m2',type:'m'}],defSets:3,winSets:2,special:false,pts:0},
+    {id:uid(),label:"Men's doubles",role:'Defensive Wall',slots:[{key:'m3',type:'m'},{key:'m4',type:'m'}],defSets:3,winSets:2,special:false,pts:0},
+    {id:uid(),label:"Trio",role:'Tactical Trio',slots:[{key:'m5',type:'m'},{key:'m6',type:'m'},{key:'m7',type:'m'}],defSets:3,winSets:2,special:false,pts:0},
+    {id:uid(),label:"Men's doubles",role:'Defensive Wall 2',slots:[{key:'m3',type:'m'},{key:'m4',type:'m'}],defSets:3,winSets:2,special:false,pts:0},
+    {id:uid(),label:'Fab Four 1',role:'P1 + F + P3 + P4',slots:[{key:'m1',type:'m'},{key:'f1',type:'f'},{key:'m3',type:'m'},{key:'m4',type:'m'}],defSets:1,winSets:1,special:true,pts:41},
+    {id:uid(),label:'Fab Four 2',role:'P5 + P6 + P7 + P8',slots:[{key:'m5',type:'m'},{key:'m6',type:'m'},{key:'m7',type:'m'},{key:'m8',type:'m'}],defSets:1,winSets:1,special:true,pts:41},
+  ];
+}
+
+function renderGameRows(){
+  const container=document.getElementById('game-rows-container');
+  if(!container)return;
+  let h='';
+  _gameRows.forEach((g,i)=>{
+    h+=`<div class="game-config-row" id="gr-${g.id}">
+      <div>
+        <label style="font-size:.72rem;color:#555">Game ${i+1} name</label>
+        <input type="text" value="${esc(g.label)}" placeholder="Game name" style="margin:0;font-size:.82rem" onchange="updateGameRow('${g.id}','label',this.value)">
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:#555">Scoring</label>
+        <select style="margin:0;font-size:.82rem" onchange="updateGameRow('${g.id}','special',this.value==='special')">
+          <option value="sets" ${!g.special?'selected':''}>Sets</option>
+          <option value="special" ${g.special?'selected':''}>Points</option>
+        </select>
+      </div>
+      <div ${g.special?'style="opacity:.4;pointer-events:none"':''}>
+        <label style="font-size:.72rem;color:#555">Sets</label>
+        <input type="number" min="1" max="9" value="${g.defSets}" style="margin:0;font-size:.82rem" onchange="updateGameRow('${g.id}','defSets',+this.value)">
+      </div>
+      <div ${g.special?'':'style="opacity:.4;pointer-events:none"'}>
+        <label style="font-size:.72rem;color:#555">Max pts</label>
+        <input type="number" min="1" max="999" value="${g.pts||41}" style="margin:0;font-size:.82rem" onchange="updateGameRow('${g.id}','pts',+this.value)">
+      </div>
+      <button class="btn btn-xs btn-danger" onclick="removeGameRow('${g.id}')" title="Remove"><i class="ti ti-trash"></i></button>
+    </div>`;
+  });
+  if(!_gameRows.length) h='<div style="color:#aaa;font-size:.82rem;padding:.5rem">No games configured yet. Add at least one game.</div>';
+  container.innerHTML=h;
+}
+
+function addGameRow(){
+  const f=parseInt(document.getElementById('nt-female').value)||0;
+  const m=parseInt(document.getElementById('nt-male').value)||0;
+  // figure out default slots based on current game count
+  const n=_gameRows.length;
+  const slot=n<f?`f${n+1}`:(n<f+m?`m${n-f+1}`:`m1`);
+  _gameRows.push({id:uid(),label:`Game ${n+1}`,role:'',slots:[{key:slot,type:slot.startsWith('f')?'f':'m'}],defSets:3,winSets:2,special:false,pts:21});
+  renderGameRows();
+}
+function removeGameRow(id){_gameRows=_gameRows.filter(g=>g.id!==id);renderGameRows();}
+function updateGameRow(id,field,val){
+  const g=_gameRows.find(x=>x.id===id);
+  if(!g)return;
+  g[field]=val;
+  if(field==='special'){g.winSets=val?1:Math.ceil(g.defSets/2);}
+  renderGameRows();
+}
+
+function createTournament(){
+  const name=document.getElementById('nt-name').value.trim();
+  const pw=document.getElementById('nt-pw').value;
+  const sport=document.getElementById('nt-sport').value.trim();
+  const emoji=document.getElementById('nt-emoji').value||'🏆';
+  const female=parseInt(document.getElementById('nt-female').value)||0;
+  const male=parseInt(document.getElementById('nt-male').value)||0;
+
+  if(!name){showToast('Please enter a tournament name','error');document.getElementById('nt-name').focus();return;}
+  if(pw.length<4){showToast('Password must be at least 4 characters','error');return;}
+  if(!_gameRows.length){showToast('Add at least one game','error');return;}
+
+  const id='t_'+uid();
+  // Build GAMES structure with n index
+  const gamesConfig=_gameRows.map((g,i)=>{
+    // Build player slots based on female/male counts
+    const slots=buildSlotsForGame(g,female,male);
+    return {...g,n:i+1,slots,winSets:g.special?1:Math.ceil(g.defSets/2)};
+  });
+
+  const state={
+    config:{name,sport,emoji,female,male,pw,gamesConfig,createdAt:Date.now()},
+    groups:[{id:'g1',name:'Group A'},{id:'g2',name:'Group B'}],
+    teams:{g1:[],g2:[]},
+    matches:{},
+    schedule:[]
+  };
+
+  const id2=id;
+  saveTState(id2,state);
+  const list=getTList();
+  list.unshift({id:id2,name,sport,emoji,lastSaved:Date.now()});
+  saveTList(list);
+  closeNewTModal();
+  showToast('Tournament created!','success');
+  renderTournamentGrid();
+}
+
+function buildSlotsForGame(gameRow,female,male){
+  // Use whatever slots were configured (kept from defaults or user adjusted)
+  return gameRow.slots||[];
+}
+
+// ══════════════════════════════════════════════════════
+// ACCESS GATE
+// ══════════════════════════════════════════════════════
+let _gateRole='viewer';
+function selectRole(r){
+  _gateRole=r;
+  document.getElementById('role-viewer').classList.toggle('sel',r==='viewer');
+  document.getElementById('role-admin').classList.toggle('sel',r==='admin');
+  const pw=document.getElementById('gate-pw-wrap');
+  pw.classList.toggle('show',r==='admin');
+  document.getElementById('gate-btn').textContent=r==='admin'?'Enter as Admin':'Enter as Viewer';
+  document.getElementById('gate-err').textContent='';
+}
+
+function gateSubmit(){
+  if(_gateRole==='admin'){
+    const state=getTState(CURRENT_T_ID);
+    const pw=document.getElementById('gate-pw').value;
+    const correctPw=state?.config?.pw||ADMIN_PW_DEFAULT;
+    if(pw!==correctPw){
+      document.getElementById('gate-pw').classList.add('err');
+      document.getElementById('gate-err').textContent='Incorrect password.';
+      setTimeout(()=>document.getElementById('gate-pw').classList.remove('err'),500);
+      return;
+    }
+    IS_ADMIN=true;
+  } else {
+    IS_ADMIN=false;
+  }
+  document.getElementById('gate').classList.add('gone');
+  document.getElementById('gate-pw').value='';
+  enterApp();
+}
+
+function enterApp(){
+  // Load state — fall back to JSONBin pull if not in localStorage
+  let state=getTState(CURRENT_T_ID);
+  if(!state&&_jbBinId){
+    // Will async-load then re-enter
+    enterViewerFromUrl();
+    return;
+  }
+  if(!state){showToast('Tournament data not found','error');backToLanding();return;}
+  S=state;
+  // Build GAMES from config
+  GAMES=S.config.gamesConfig||[];
+  MALE_KEYS=[];FEMALE_KEYS=[];
+  for(let i=1;i<=S.config.male;i++)MALE_KEYS.push('m'+i);
+  for(let i=1;i<=S.config.female;i++)FEMALE_KEYS.push('f'+i);
+
+  // Update UI
+  document.getElementById('app-tname').textContent=S.config.name;
+  const badge=document.getElementById('app-role-badge');
+  badge.textContent=IS_ADMIN?'Admin':'Viewer';
+  badge.className='app-role-badge '+(IS_ADMIN?'rb-admin':'rb-viewer');
+
+  document.getElementById('viewer-login-btn').style.display=IS_ADMIN?'none':'';
+  document.getElementById('sync-status').style.display='';
+
+  // Mode banner
+  const banner=document.getElementById('mode-banner');
+  if(IS_ADMIN){
+    banner.innerHTML=`<div class="admin-banner-bar"><i class="ti ti-shield-check"></i> <strong>Admin mode</strong> — Full edit access enabled</div>`;
+  } else {
+    banner.innerHTML=`<div class="viewer-banner-bar"><i class="ti ti-eye"></i> <strong>Viewer mode</strong> — Read-only. Scores and standings update live.</div>`;
+  }
+
+  if(IS_ADMIN){
+    document.body.classList.remove('viewer-mode');
+  } else {
+    document.body.classList.add('viewer-mode');
+  }
+
+  document.getElementById('app').classList.add('visible');
+  initSync();
+  // Viewer starts on Schedule, admin on Setup
+  switchTab(IS_ADMIN?'setup':'schedule');
+}
+
+function showGateForAdmin(){
+  document.getElementById('gate').classList.remove('gone');
+  selectRole('admin');
+}
+function doLogout(){
+  stopPolling();
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('sync-status').style.display='none';
+  IS_ADMIN=false;
+  // Reset gate to viewer default before showing it
+  document.getElementById('gate-viewer-section').style.display='block';
+  document.getElementById('gate-admin-section').style.display='none';
+  openTournament(CURRENT_T_ID);
+}
+function toggleGatePw(){const i=document.getElementById('gate-pw');const icon=document.getElementById('gate-eye-icon');i.type=i.type==='password'?'text':'password';icon.className=i.type==='password'?'ti ti-eye':'ti ti-eye-off';}
+
+function showAdminGate(){
+  document.getElementById('gate-viewer-section').style.display='none';
+  document.getElementById('gate-admin-section').style.display='block';
+  document.getElementById('gate-pw').value='';
+  document.getElementById('gate-err').textContent='';
+  document.getElementById('gate-pw').focus();
+}
+
+function hideAdminGate(){
+  document.getElementById('gate-admin-section').style.display='none';
+  document.getElementById('gate-viewer-section').style.display='block';
+  document.getElementById('gate-err').textContent='';
+}
+
+function gateAdminSubmit(){
+  const state=getTState(CURRENT_T_ID);
+  const pw=document.getElementById('gate-pw').value;
+  const correctPw=state?.config?.pw||ADMIN_PW_DEFAULT;
+  if(pw!==correctPw){
+    document.getElementById('gate-pw').classList.add('err');
+    document.getElementById('gate-err').textContent='Incorrect password.';
+    setTimeout(()=>document.getElementById('gate-pw').classList.remove('err'),500);
+    return;
+  }
+  IS_ADMIN=true;
+  document.getElementById('gate').classList.add('gone');
+  document.getElementById('gate-pw').value='';
+  enterApp();
+}
+function toggleFieldPw(id){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';}
+function openChpw(){document.getElementById('chpw-overlay').classList.add('open');document.getElementById('chpw-err').textContent='';['chpw-cur','chpw-new','chpw-con'].forEach(x=>document.getElementById(x).value='');}
+function doChangePw(){
+  const cur=document.getElementById('chpw-cur').value;
+  const n=document.getElementById('chpw-new').value;
+  const c=document.getElementById('chpw-con').value;
+  const errEl=document.getElementById('chpw-err');
+  if(cur!==S.config.pw){errEl.textContent='Current password incorrect.';return;}
+  if(n.length<4){errEl.textContent='Min 4 characters.';return;}
+  if(n!==c){errEl.textContent='Passwords do not match.';return;}
+  S.config.pw=n;
+  saveState();
+  document.getElementById('chpw-overlay').classList.remove('open');
+  showToast('Password changed ✓','success');
+}
+
+// ══════════════════════════════════════════════════════
+// STATE MANAGEMENT
+// ══════════════════════════════════════════════════════
+function saveState(){
+  if(!CURRENT_T_ID)return;
+  saveTState(CURRENT_T_ID,S);
+  const list=getTList();
+  const meta=list.find(t=>t.id===CURRENT_T_ID);
+  if(meta){meta.lastSaved=Date.now();saveTList(list);}
+
+  // Flash saved indicator
+  const ind=document.getElementById('saved-indicator');
+  if(ind){ind.style.display='inline-flex';clearTimeout(ind._t);ind._t=setTimeout(()=>ind.style.display='none',2500);}
+
+  // Debounced JSONBin push (admin only, only if connected)
+  if(IS_ADMIN&&_jbKey&&_jbBinId){
+    clearTimeout(_pushTimer);
+    _pushTimer=setTimeout(()=>jbPush(false),PUSH_DEBOUNCE);
+  }
+  // Broadcast to same-browser viewers (BroadcastChannel)
+  try{if(_bc)_bc.postMessage({type:'state_update',state:S,ts:Date.now(),tid:CURRENT_T_ID});}catch(e){}
+}
+
+// ══════════════════════════════════════════════════════
+// JSONBIN SYNC
+// ══════════════════════════════════════════════════════
+
+// ── Helpers ──────────────────────────────────────────
+function jbHeaders(write=false){
+  const h={'X-Master-Key':_jbKey,'Content-Type':'application/json'};
+  if(!write)h['X-Bin-Meta']='false';  // skip metadata in GET responses
+  return h;
+}
+function jbBinKey(){return JB_BIN_STORE+'_'+CURRENT_T_ID;}
+
+// ── Init: load keys from localStorage, wire BroadcastChannel ─────────
+function initSync(){
+  // Load stored key + bin (admin flow; viewer-via-URL already has _jbBinId set)
+  if(!_jbKey)  _jbKey  = localStorage.getItem(JB_KEY_STORE)||'';
+  if(!_jbBinId)_jbBinId= localStorage.getItem(jbBinKey())||'';
+
+  // BroadcastChannel — same-browser instant sync
+  try{
+    if(_bc)try{_bc.close();}catch(e){}
+    _bc=new BroadcastChannel('thub_sync_'+CURRENT_T_ID);
+    _bc.onmessage=(ev)=>{
+      if(ev.data&&ev.data.type==='state_update'&&!IS_ADMIN&&ev.data.tid===CURRENT_T_ID){
+        S=ev.data.state;saveTState(CURRENT_T_ID,S);
+        GAMES=S.config&&S.config.gamesConfig||[];
+        refreshCurrentTab();
+        setLastSync('Updated from admin tab');
+      }
+    };
+  }catch(e){}
+
+  if(_jbBinId){
+    setSyncStatus('ok','Live sync on');
+    startPolling();
+  } else {
+    setSyncStatus('local','Local only');
+  }
+  refreshSyncModalUI();
+}
+
+// ── Connect: validate key + create or reuse bin ───────────────────────
+async function jbConnect(){
+  const key=document.getElementById('jb-key-input').value.trim();
+  const existingBin=document.getElementById('jb-bin-input').value.trim();
+  const statusEl=document.getElementById('jb-connect-status');
+  const btn=document.getElementById('jb-connect-btn');
+
+  if(!key){statusEl.textContent='Please paste your Master Key.';statusEl.style.color='#ff3b30';return;}
+  if(!key.startsWith('$2a$')&&!key.startsWith('$2b$')){statusEl.textContent='Key should start with $2a$ or $2b$ — copy the Master Key from JSONBin → API Keys.';statusEl.style.color='#ff3b30';return;}
+
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Connecting…';
+  statusEl.textContent='';statusEl.style.color='#555';
+
+  try{
+    _jbKey=key;
+    let binId=existingBin;
+
+    if(!binId){
+      // Auto-create a new bin for this tournament
+      const tName=(S.config&&S.config.name)||'Tournament';
+      const payload={state:S,tournamentId:CURRENT_T_ID,ts:Date.now()};
+      const res=await fetch(JB_API+'/b',{
+        method:'POST',
+        headers:{...jbHeaders(true),'X-Bin-Name':tName.slice(0,64),'X-Bin-Private':'false'},
+        body:JSON.stringify(payload)
+      });
+      if(res.status===401){throw new Error('Invalid Master Key — please check and try again.');}
+      if(!res.ok){const t=await res.text();throw new Error('Create bin failed: '+res.status+' '+t.slice(0,120));}
+      const data=await res.json();
+      binId=data.metadata&&data.metadata.id;
+      if(!binId)throw new Error('No bin ID in response. Check your API key permissions.');
+      _lastRemoteTs=Date.now();
+    } else {
+      // Verify the existing bin is readable
+      const res=await fetch(JB_API+'/b/'+binId+'/latest',{headers:jbHeaders(false)});
+      if(res.status===401){throw new Error('Invalid Master Key.');}
+      if(res.status===404){throw new Error('Bin ID not found. Check the ID and try again.');}
+      if(!res.ok)throw new Error('Cannot read bin: HTTP '+res.status);
+    }
+
+    // Persist
+    _jbBinId=binId;
+    localStorage.setItem(JB_KEY_STORE,key);
+    localStorage.setItem(jbBinKey(),binId);
+
+    statusEl.innerHTML='✓ Connected! Bin ID: <code style="font-size:.78rem;background:#f5f5f7;padding:2px 6px;border-radius:4px">'+binId+'</code>';
+    statusEl.style.color='#1a7a3a';
+    setSyncStatus('ok','Live sync on');
+    startPolling();
+    refreshSyncModalUI();
+    showToast('JSONBin connected ✓','success');
+    if(IS_ADMIN)jbPush(false);
+
+  }catch(err){
+    _jbKey='';_jbBinId='';
+    statusEl.textContent='✗ '+err.message;
+    statusEl.style.color='#ff3b30';
+    setSyncStatus('error','Connection failed');
+  }finally{
+    btn.disabled=false;btn.innerHTML='<i class="ti ti-plug"></i> Connect &amp; Save';
+  }
+}
+
+// ── Push state to JSONBin (admin) ─────────────────────────────────────
+async function jbPush(manual=false){
+  if(!_jbKey||!_jbBinId)return;
+  if(manual)setSyncStatus('syncing','Pushing…');
+  try{
+    const payload={state:S,tournamentId:CURRENT_T_ID,ts:Date.now()};
+    const res=await fetch(JB_API+'/b/'+_jbBinId,{
+      method:'PUT',
+      headers:jbHeaders(true),
+      body:JSON.stringify(payload)
+    });
+    if(res.status===401){setSyncStatus('error','Auth error — reconnect');return;}
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    _lastRemoteTs=Date.now();
+    setSyncStatus('ok','Synced ✓');
+    setLastSync('Pushed at '+fmtTime());
+    if(manual)showToast('Pushed to JSONBin ✓','success');
+    setTimeout(()=>{if(_jbBinId)setSyncStatus('ok','JSONBin connected');},3000);
+  }catch(e){
+    setSyncStatus('error','Push failed');
+    if(manual)showToast('Push failed: '+e.message,'error');
+  }
+}
+
+// ── Pull latest — authenticated (admin) ──────────────────────────────
+async function jbPull(manual=false){
+  if(!_jbBinId)return;
+  if(manual)setSyncStatus('syncing','Pulling…');
+  // Use key if available, else fall back to public read
+  const hdrs=_jbKey?jbHeaders(false):{'X-Bin-Meta':'false'};
+  try{
+    const res=await fetch(JB_API+'/b/'+_jbBinId+'/latest',{headers:hdrs});
+    if(res.status===401){setSyncStatus('error','Auth error');return;}
+    if(res.status===404){setSyncStatus('error','Bin not found');return;}
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const rec=data.record||data;
+    if(!rec||!rec.state)return;
+
+    if(rec.ts&&rec.ts>_lastRemoteTs){
+      _lastRemoteTs=rec.ts;
+      if(!IS_ADMIN){
+        S=rec.state;
+        saveTState(CURRENT_T_ID,S);
+        GAMES=S.config&&S.config.gamesConfig||[];
+        refreshCurrentTab();
+      }
+      setSyncStatus('ok','Live sync on');
+      setLastSync('Updated '+fmtTime());
+      if(manual)showToast('Pulled latest data ✓','success');
+    } else {
+      if(manual){showToast('Already up to date','info');setSyncStatus('ok','Live sync on');}
+    }
+  }catch(e){
+    setSyncStatus('error','Poll failed');
+    console.warn('jbPull error',e);
+  }
+}
+
+// ── Pull public — no key, for URL-entry viewers ───────────────────────
+async function jbPullPublic(){
+  if(!_jbBinId)return;
+  try{
+    const res=await fetch(JB_API+'/b/'+_jbBinId+'/latest',{headers:{'X-Bin-Meta':'false'}});
+    if(!res.ok)return;
+    const data=await res.json();
+    const rec=data.record||data;
+    if(!rec||!rec.state)return;
+    if(rec.ts&&rec.ts>_lastRemoteTs){
+      _lastRemoteTs=rec.ts;
+      S=rec.state;
+      GAMES=S.config&&S.config.gamesConfig||[];
+      saveTState(CURRENT_T_ID,S);
+      refreshCurrentTab();
+      setSyncStatus('ok','Live sync on');
+      setLastSync('Updated '+fmtTime());
+    }
+  }catch(e){console.warn('jbPullPublic error',e);}
+}
+
+// ── Polling loop ─────────────────────────────────────────────────────
+function startPolling(){
+  stopPolling();
+  // Viewers use keyless public read; admins use authenticated read
+  const pollFn=IS_ADMIN?()=>jbPull(false):()=>jbPullPublic();
+  _pollTimer=setInterval(pollFn,POLL_INTERVAL);
+  // Immediate pull on start
+  if(!IS_ADMIN) jbPullPublic();
+}
+function stopPolling(){
+  if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}
+}
+
+// ── Disconnect ────────────────────────────────────────────────────────
+function jbDisconnect(){
+  if(!confirm('Disconnect JSONBin? Scores will no longer sync. Local data is kept.'))return;
+  stopPolling();
+  _jbKey='';_jbBinId='';
+  localStorage.removeItem(JB_KEY_STORE);
+  localStorage.removeItem(jbBinKey());
+  setSyncStatus('local','Local only');
+  refreshSyncModalUI();
+  showToast('JSONBin disconnected','info');
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────
+function setSyncStatus(state,label){
+  const dot=document.getElementById('sync-dot');
+  const lbl=document.getElementById('sync-label');
+  if(dot){dot.className='';dot.classList.add(state);}
+  if(lbl)lbl.textContent=label;
+}
+function setLastSync(msg){
+  const el=document.getElementById('jb-last-sync');
+  if(el)el.textContent=msg;
+}
+function fmtTime(){
+  return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function refreshSyncModalUI(){
+  const connected=!!(_jbKey&&_jbBinId);
+  const form=document.getElementById('jb-connect-form');
+  const panel=document.getElementById('jb-connected-panel');
+  if(form)form.style.display=connected?'none':'block';
+  if(panel)panel.style.display=connected?'block':'none';
+  const binDisp=document.getElementById('jb-bin-display');
+  if(binDisp)binDisp.textContent=_jbBinId||'';
+  // Pre-fill key field
+  const keyInp=document.getElementById('jb-key-input');
+  if(keyInp&&_jbKey&&!keyInp.value)keyInp.value=_jbKey;
+  // Build & show the viewer share link
+  if(connected&&_jbBinId){
+    const base=location.origin+location.pathname;
+    const shareUrl=base+'?bin='+encodeURIComponent(_jbBinId)+'&tid='+encodeURIComponent(CURRENT_T_ID);
+    const linkEl=document.getElementById('jb-share-link');
+    const linkBox=document.getElementById('jb-share-box');
+    if(linkEl) linkEl.value=shareUrl;
+    if(linkBox) linkBox.style.display='block';
+  } else {
+    const linkBox=document.getElementById('jb-share-box');
+    if(linkBox) linkBox.style.display='none';
+  }
+}
+
+function openSyncModal(){
+  refreshSyncModalUI();
+  const statusEl=document.getElementById('jb-connect-status');
+  if(statusEl)statusEl.textContent='';
+  document.getElementById('sync-modal').classList.add('open');
+}
+
+function copyShareLink(){
+  const inp=document.getElementById('jb-share-link');
+  if(!inp)return;
+  try{
+    navigator.clipboard.writeText(inp.value).then(()=>showToast('Link copied! Share it with viewers 🎉','success'));
+  }catch(e){
+    inp.select();document.execCommand('copy');
+    showToast('Link copied!','success');
+  }
+}
+
+function exportJSON(){
+  const blob=new Blob([JSON.stringify({state:S,tournamentId:CURRENT_T_ID,exported:new Date().toISOString()},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  const safeName=(S.config.name||'tournament').replace(/[^a-zA-Z0-9]/g,'_');
+  a.download=safeName+'_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+}
+
+function importJSON(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const parsed=JSON.parse(ev.target.result);
+      const newState=parsed.state||parsed;
+      if(!newState.groups||!newState.teams){alert('Invalid backup file.');return;}
+      if(!confirm('Replace ALL current tournament data with backup?'))return;
+      S=newState;GAMES=S.config.gamesConfig||[];
+      saveState();refreshCurrentTab();showToast('Backup restored ✓','success');
+    }catch(err){alert('Failed to read file: '+err.message);}
+  };
+  r.readAsText(file);e.target.value='';
+}
+
+function clearTournamentData(){
+  if(!confirm('Clear all match data for this tournament? Team setup is kept.'))return;
+  S.matches={};S.schedule=[];
+  saveState();refreshCurrentTab();showToast('Match data cleared','error');
+}
+
+// ══════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════
+function uid(){return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+function allTeams(){let r=[];for(let g in S.teams)r=r.concat(S.teams[g]);return r}
+function teamById(id){return allTeams().find(t=>t.id===id)}
+function mkey(a,b){return[a,b].sort().join('__')}
+function pv(tm,k){return(tm&&tm.players&&tm.players[k])||''}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function raw(s){return(s||'').replace(/"/g,'""')}
+
+function showToast(msg,type='info'){
+  const area=document.getElementById('toast-area');
+  const d=document.createElement('div');
+  d.className=`toast ${type}`;
+  const icons={success:'ti-check',error:'ti-x',info:'ti-info-circle'};
+  d.innerHTML=`<i class="ti ${icons[type]||'ti-info-circle'}"></i> ${msg}`;
+  area.appendChild(d);
+  setTimeout(()=>d.remove(),3000);
+}
+
+function formatDate(d){try{const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});}catch(e){return d;}}
+
+function refreshCurrentTab(){
+  const active=document.querySelector('.section.active');
+  if(!active)return;
+  const id=active.id.replace('tab-','');
+  const renders={setup:renderSetup,schedule:renderScheduleTab,matches:renderMatchTab,standings:renderStandingsTab,knockout:renderKnockoutTab,export:renderExportTab};
+  if(renders[id])renders[id]();
+}
+
+function switchTab(t){
+  const allTabs=['setup','schedule','matches','standings','knockout','export'];
+  const tabBtns=document.querySelectorAll('.tab');
+  // Map tab index based on admin vs viewer (admin has Setup tab)
+  allTabs.forEach((x,i)=>{
+    const btn=tabBtns[i];
+    if(btn)btn.classList.toggle('active',x===t);
+    const sec=document.getElementById('tab-'+x);
+    if(sec)sec.classList.toggle('active',x===t);
+  });
+  if(t==='setup')renderSetup();
+  if(t==='schedule')renderScheduleTab();
+  if(t==='matches')renderMatchTab();
+  if(t==='standings')renderStandingsTab();
+  if(t==='knockout')renderKnockoutTab();
+  if(t==='export')renderExportTab();
+}
+
+// ══════════════════════════════════════════════════════
+// SETS LOGIC
+// ══════════════════════════════════════════════════════
+function getNumSets(g,def){return g.numSets!=null?g.numSets:(def.defSets||3)}
+function setsWon(sets){
+  let a=0,b=0;
+  (sets||[]).forEach(s=>{if(s.a!==''&&s.b!==''){if(Number(s.a)>Number(s.b))a++;else if(Number(s.b)>Number(s.a))b++;}});
+  return{a,b};
+}
+function decidedAfterSet(sets,winSets){
+  let a=0,b=0;
+  for(let i=0;i<sets.length;i++){
+    const s=sets[i];
+    if(s.a!==''&&s.b!==''){if(Number(s.a)>Number(s.b))a++;else if(Number(s.b)>Number(s.a))b++;}
+    if(a>=winSets||b>=winSets)return i;
+  }
+  return -1;
+}
+function gameWin(def,g,tA,tB){
+  if(!g)return null;
+  if(def.special){
+    const sv=(g.sets&&g.sets[0])||{a:'',b:''};
+    if(sv.a===''||sv.b==='')return null;
+    return Number(sv.a)>Number(sv.b)?tA.id:Number(sv.b)>Number(sv.a)?tB.id:null;
+  }
+  const sw=setsWon(g.sets);
+  const ws=def.winSets||2;
+  if(sw.a>=ws)return tA.id;if(sw.b>=ws)return tB.id;return null;
+}
+
+function calcSum(key,tA,tB){
+  const md=S.matches[key];
+  if(!md||!tA||!tB)return{gA:0,gB:0,pA:0,pB:0,done:false,winnerId:null,leader:''};
+  let gA=0,gB=0;
+  GAMES.forEach(def=>{
+    const w=gameWin(def,md.games['g'+def.n],tA,tB);
+    if(w===tA.id)gA++;else if(w===tB.id)gB++;
+  });
+  const total=GAMES.length;
+  const needed=Math.floor(total/2)+1; // simple majority
+  // match winner: first to win majority of games OR all special games scored
+  const done=(gA>=needed||gB>=needed);
+  const winnerId=gA>=needed?tA.id:gB>=needed?tB.id:null;
+  const leader=gA>gB?tA.name:gB>gA?tB.name:'Tied';
+  return{gA,gB,pA:gA>=needed?2:0,pB:gB>=needed?2:0,done,winnerId,leader};
+}
+
+function getGroupToppers(){
+  const toppers={};
+  S.groups.forEach(g=>{
+    const teams=S.teams[g.id]||[];let rows=[];
+    teams.forEach(tm=>{
+      let pts=0,gw=0,gl=0;
+      teams.forEach(opp=>{
+        if(opp.id===tm.id)return;const key=mkey(tm.id,opp.id);const md=S.matches[key];if(!md)return;
+        const tA=teamById(md.teamA),tB=teamById(md.teamB);const sum=calcSum(key,tA,tB);
+        const mg=tm.id===md.teamA?sum.gA:sum.gB,og=tm.id===md.teamA?sum.gB:sum.gA;
+        if(mg>0||og>0){if(mg>=Math.floor(GAMES.length/2)+1)pts+=2;gw+=mg;gl+=og;}
+      });
+      rows.push({tm,pts,gw,gl,diff:gw-gl});
+    });
+    rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.gw-a.gw));
+    toppers[g.id]=rows;
+  });
+  return toppers;
+}
+
+// ══════════════════════════════════════════════════════
+// SETUP TAB
+// ══════════════════════════════════════════════════════
+function renderSetup(){
+  const allSlotKeys=[...FEMALE_KEYS,...MALE_KEYS];
+  let h='';
+
+  // Tournament config card (admin only)
+  if(IS_ADMIN){
+    h+=`<div class="card admin-only">
+    <div class="card-title"><i class="ti ti-settings"></i> Tournament Configuration</div>
+    <div class="g3">
+      <div><label>Tournament name</label><input type="text" value="${esc(S.config.name)}" onchange="S.config.name=this.value;saveState();document.getElementById('app-tname').textContent=this.value"></div>
+      <div><label>Sport / type</label><input type="text" value="${esc(S.config.sport||'')}" onchange="S.config.sport=this.value;saveState()"></div>
+      <div><label>Emoji</label><input type="text" value="${S.config.emoji||'🏆'}" maxlength="2" style="font-size:1.2rem;text-align:center" onchange="S.config.emoji=this.value;saveState()"></div>
+    </div>
+    <div style="font-size:.78rem;color:#555;margin-top:.25rem">
+      Female players/team: <strong>${S.config.female}</strong> · Male players/team: <strong>${S.config.male}</strong> · Games/match: <strong>${GAMES.length}</strong>
+      <span style="color:#aaa;margin-left:8px">(Player counts set at creation. Export backup to migrate data.)</span>
+    </div>
+    </div>`;
+
+    // Import CSV
+    h+=`<div class="card admin-only">
+    <div class="card-title"><i class="ti ti-upload"></i> Import from CSV</div>
+    <div class="g3">
+      <div>
+        <div style="font-size:.82rem;font-weight:700;margin-bottom:6px"><i class="ti ti-users" style="color:#0071e3"></i> Teams</div>
+        <div class="upload-zone"><i class="ti ti-file-upload" style="font-size:24px;color:#0071e3"></i>
+        <div style="font-size:.82rem;font-weight:600;margin-top:4px">teams.csv</div>
+        <div style="font-size:.72rem;color:#555;margin-top:2px">team_name, group</div>
+        <input type="file" accept=".csv,.txt" onchange="handleTeamCSV(event)"></div>
+        <button class="btn btn-sm btn-ghost" style="margin-top:5px" onclick="dlTeamsTemplate()"><i class="ti ti-download"></i> Template</button>
+      </div>
+      <div>
+        <div style="font-size:.82rem;font-weight:700;margin-bottom:6px"><i class="ti ti-user-star" style="color:#ff9500"></i> Players (bulk)</div>
+        <div class="upload-zone"><i class="ti ti-file-upload" style="font-size:24px;color:#ff9500"></i>
+        <div style="font-size:.82rem;font-weight:600;margin-top:4px">players.csv</div>
+        <div style="font-size:.72rem;color:#555;margin-top:2px">team_name, slot, name</div>
+        <input type="file" accept=".csv,.txt" onchange="handleBulkPlayerCSV(event)"></div>
+        <button class="btn btn-sm btn-ghost" style="margin-top:5px" onclick="dlBulkTemplate()"><i class="ti ti-download"></i> Template</button>
+      </div>
+      <div>
+        <div style="font-size:.82rem;font-weight:700;margin-bottom:6px"><i class="ti ti-info-circle" style="color:#555"></i> Slot reference</div>
+        <div style="border:1px solid #e5e5ea;border-radius:7px;padding:.625rem;font-size:.78rem;line-height:2;background:#f9f9fb">
+        ${FEMALE_KEYS.map(k=>`<span class="badge bf">${k}</span> Female`).join('<br>')}
+        ${FEMALE_KEYS.length?'<br>':''}
+        ${MALE_KEYS.map((k,i)=>`<span class="badge bm">${k}</span> Male ${i+1}`).join('  ')}
+        </div>
+      </div>
+    </div></div>`;
+  }
+
+  // Groups
+  h+=`<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+  <div class="card-title" style="margin:0"><i class="ti ti-circles"></i> Groups</div>
+  ${IS_ADMIN?`<button class="btn btn-primary btn-sm admin-only" onclick="addGroup()"><i class="ti ti-plus"></i> Add group</button>`:''}
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">`;
+  S.groups.forEach(g=>{
+    if(IS_ADMIN){
+      h+=`<div style="display:flex;gap:6px"><input type="text" value="${esc(g.name)}" style="flex:1;margin:0" onchange="renameGroup('${g.id}',this.value)">
+      <button class="btn btn-danger btn-sm" onclick="removeGroup('${g.id}')"><i class="ti ti-trash"></i></button></div>`;
+    } else {
+      h+=`<div style="padding:7px 10px;border:1px solid #e5e5ea;border-radius:7px;font-weight:600;font-size:.85rem;background:#f9f9fb">${esc(g.name)}</div>`;
+    }
+  });
+  h+=`</div></div>`;
+
+  // Teams per group
+  S.groups.forEach(g=>{
+    const teams=S.teams[g.id]||[];
+    h+=`<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+    <div class="card-title" style="margin:0"><i class="ti ti-users"></i> ${esc(g.name)}</div>
+    ${IS_ADMIN?`<button class="btn btn-primary btn-sm admin-only" onclick="addTeam('${g.id}')"><i class="ti ti-plus"></i> Add team</button>`:''}
+    </div>`;
+    if(!teams.length)h+=`<div style="color:#aaa;font-size:.82rem;text-align:center;padding:.5rem 0">No teams yet.</div>`;
+    teams.forEach(tm=>{
+      const filled=allSlotKeys.filter(k=>pv(tm,k)).length;
+      const total=allSlotKeys.length;
+      h+=`<div style="border:1px solid #e5e5ea;border-radius:12px;padding:.875rem;margin-bottom:.75rem;background:#f9f9fb">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:.75rem">`;
+      if(IS_ADMIN){
+        h+=`<input type="text" value="${esc(tm.name)}" style="flex:1;margin:0;font-weight:700" onchange="renameTeam('${tm.id}',this.value)">
+        <span class="badge bg">${filled}/${total}</span>
+        <label class="btn btn-warn btn-sm" style="cursor:pointer;margin:0"><i class="ti ti-upload"></i> CSV
+        <input type="file" accept=".csv,.txt" style="display:none" onchange="handlePlayerCSV(event,'${tm.id}')"></label>
+        <button class="btn btn-danger btn-sm" onclick="removeTeam('${g.id}','${tm.id}')"><i class="ti ti-trash"></i></button>`;
+      } else {
+        h+=`<span style="flex:1;font-weight:700;font-size:.9rem">${esc(tm.name)}</span><span class="badge bg">${filled}/${total} players</span>`;
+      }
+      h+=`</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 14px">`;
+      // Female slots
+      FEMALE_KEYS.forEach((k,i)=>{
+        h+=`<div><label><span class="badge bf">F${i+1}</span> Female player ${i+1} (${k})</label>`;
+        if(IS_ADMIN){h+=`<input type="text" value="${esc(pv(tm,k))}" placeholder="Name" style="margin:0" onchange="setP('${tm.id}','${k}',this.value)">`;}
+        else{h+=`<div style="padding:6px 10px;border:1px solid #e5e5ea;border-radius:7px;font-size:.82rem;background:#fff">${esc(pv(tm,k))||`<span style="color:#aaa">Not set</span>`}</div>`;}
+        h+=`</div>`;
+      });
+      // Male slots
+      MALE_KEYS.forEach((k,i)=>{
+        h+=`<div><label><span class="badge bm">M${i+1}</span> Male player ${i+1} (${k})</label>`;
+        if(IS_ADMIN){h+=`<input type="text" value="${esc(pv(tm,k))}" placeholder="Name" style="margin:0" onchange="setP('${tm.id}','${k}',this.value)">`;}
+        else{h+=`<div style="padding:6px 10px;border:1px solid #e5e5ea;border-radius:7px;font-size:.82rem;background:#fff">${esc(pv(tm,k))||`<span style="color:#aaa">Not set</span>`}</div>`;}
+        h+=`</div>`;
+      });
+      h+=`</div></div>`;
+    });
+    h+=`</div>`;
+  });
+  document.getElementById('tab-setup').innerHTML=h;
+}
+
+function renameGroup(id,v){S.groups.find(g=>g.id===id).name=v;saveState();}
+function removeGroup(id){if(!confirm('Remove group and all teams?'))return;S.groups=S.groups.filter(g=>g.id!==id);delete S.teams[id];saveState();renderSetup();}
+function addGroup(){const id=uid();S.groups.push({id,name:'Group '+(String.fromCharCode(65+S.groups.length))});S.teams[id]=[];saveState();renderSetup();}
+function renameTeam(id,v){allTeams().find(t=>t.id===id).name=v;saveState();}
+function setP(tid,key,val){const t=allTeams().find(x=>x.id===tid);if(t){if(!t.players)t.players={};t.players[key]=val;saveState();}}
+function removeTeam(gid,tid){S.teams[gid]=S.teams[gid].filter(t=>t.id!==tid);saveState();renderSetup();}
+function addTeam(gid){const id=uid();if(!S.teams[gid])S.teams[gid]=[];S.teams[gid].push({id,name:'New Team',players:{}});saveState();renderSetup();}
+
+// CSV Import
+function parseCSV(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(!lines.length)return[];
+  const header=lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/['"]/g,''));
+  return lines.slice(1).filter(l=>l.trim()).map(l=>{
+    const vals=l.split(',').map(v=>v.trim().replace(/^["']|["']$/g,''));
+    const row={};header.forEach((h,i)=>row[h]=vals[i]||'');return row;
+  });
+}
+function handleTeamCSV(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();r.onload=ev=>{
+    const rows=parseCSV(ev.target.result);
+    rows.forEach(row=>{
+      const tname=row['team_name']||row['team'];const gname=row['group']||'Group A';
+      let grp=S.groups.find(g=>g.name.toLowerCase()===gname.toLowerCase());
+      if(!grp){grp={id:uid(),name:gname};S.groups.push(grp);S.teams[grp.id]=[];}
+      if(!S.teams[grp.id])S.teams[grp.id]=[];
+      if(tname&&!S.teams[grp.id].find(t=>t.name.toLowerCase()===tname.toLowerCase()))
+        S.teams[grp.id].push({id:uid(),name:tname,players:{}});
+    });
+    saveState();renderSetup();showToast(`${rows.length} teams imported`,'success');
+  };r.readAsText(file);e.target.value='';
+}
+function handleBulkPlayerCSV(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();r.onload=ev=>{
+    const rows=parseCSV(ev.target.result);let updated=0;
+    rows.forEach(row=>{
+      const tname=row['team_name']||row['team'];const slot=row['slot'];const name=row['name']||row['player_name'];
+      const tm=allTeams().find(t=>t.name.toLowerCase()===tname?.toLowerCase());
+      if(tm&&slot&&name){if(!tm.players)tm.players={};tm.players[slot]=name;updated++;}
+    });
+    saveState();renderSetup();showToast(`${updated} players updated`,'success');
+  };r.readAsText(file);e.target.value='';
+}
+function handlePlayerCSV(e,tid){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();r.onload=ev=>{
+    const rows=parseCSV(ev.target.result);const tm=allTeams().find(t=>t.id===tid);
+    if(!tm){alert('Team not found');return;}
+    if(!tm.players)tm.players={};let updated=0;
+    rows.forEach(row=>{const slot=row['slot'];const name=row['name']||row['player_name'];
+      if(slot&&name){tm.players[slot]=name;updated++;}});
+    saveState();renderSetup();showToast(`${updated} players updated`,'success');
+  };r.readAsText(file);e.target.value='';
+}
+function dlTeamsTemplate(){dlFile('team_name,group\nTeam Alpha,Group A\nTeam Beta,Group A\nTeam Gamma,Group B','teams_template.csv')}
+function dlBulkTemplate(){
+  const lines=['team_name,slot,name'];
+  const f=FEMALE_KEYS.slice(0,1);const m=MALE_KEYS.slice(0,3);
+  [...f,...m].forEach(k=>lines.push(`Team Alpha,${k},Player Name`));
+  dlFile(lines.join('\n'),'players_template.csv');
+}
+
+// ══════════════════════════════════════════════════════
+// SCHEDULE TAB
+// ══════════════════════════════════════════════════════
+function renderScheduleTab(){
+  const teams=allTeams();
+  const teamOpts='<option value="">— TBD —</option>'+teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  const phaseOpts=`<option value="group">Group stage</option><option value="sf">Semi-final</option><option value="final">Final</option><option value="third">3rd place play-off</option>`;
+  let h='';
+  if(IS_ADMIN){
+    h+=`<div class="card admin-only"><div class="card-title"><i class="ti ti-plus"></i> Add fixture</div>
+    <div class="g2" style="margin-bottom:.75rem">
+      <div><label>Phase</label><select id="sch-phase" style="margin:0">${phaseOpts}</select></div>
+      <div><label>Round / label</label><input type="text" id="sch-label" placeholder="e.g. Round 1…" style="margin:0"></div>
+      <div><label>Team A</label><select id="sch-ta" style="margin:0">${teamOpts}</select></div>
+      <div><label>Team B</label><select id="sch-tb" style="margin:0">${teamOpts}</select></div>
+      <div><label>Date</label><input type="date" id="sch-date" style="margin:0"></div>
+      <div><label>Time</label><input type="time" id="sch-time" style="margin:0"></div>
+      <div style="grid-column:1/-1"><label>Venue</label><input type="text" id="sch-venue" placeholder="e.g. Court 1…" style="margin:0"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="addSchedItem()"><i class="ti ti-plus"></i> Add fixture</button>
+      <button class="btn btn-success" onclick="autoGenGroup()"><i class="ti ti-wand"></i> Auto-generate group fixtures</button>
+      <button class="btn btn-warn" onclick="autoGenKO()"><i class="ti ti-tournament"></i> Auto-generate knockout</button>
+    </div></div>`;
+  }
+  const phases=[{v:'all',l:'All'},{v:'group',l:'Group'},{v:'sf',l:'Semi-finals'},{v:'final',l:'Final'},{v:'third',l:'3rd place'}];
+  h+=`<div style="display:flex;gap:5px;margin-bottom:.875rem;flex-wrap:wrap">
+  ${phases.map((p,i)=>`<button class="phase-tab ${i===0?'active':''}" data-phase="${p.v}" onclick="filterSched('${p.v}',this)">${p.l}</button>`).join('')}
+  <span style="margin-left:auto;font-size:.75rem;color:#555;line-height:30px">${S.schedule.length} total</span></div>
+  <div id="sched-list"></div>`;
+  document.getElementById('tab-schedule').innerHTML=h;
+  filterSched('all',document.querySelector('.phase-tab'));
+}
+
+function autoGenGroup(){
+  let added=0;
+  S.groups.forEach(g=>{
+    const teams=S.teams[g.id]||[];
+    for(let i=0;i<teams.length;i++) for(let j=i+1;j<teams.length;j++){
+      const key=mkey(teams[i].id,teams[j].id);
+      if(S.schedule.find(s=>s.matchKey===key&&s.phase==='group'))continue;
+      S.schedule.push({id:uid(),phase:'group',label:esc(g.name),teamA:teams[i].id,teamB:teams[j].id,date:'',time:'',venue:'',matchKey:key});
+      if(!S.matches[key])S.matches[key]={teamA:teams[i].id,teamB:teams[j].id,games:{},doubleA:'',doubleB:''};
+      added++;
+    }
+  });
+  alert(`Added ${added} group fixture(s).`);saveState();filterSched('all',document.querySelector('.phase-tab'));
+}
+
+function autoGenKO(){
+  const gt=getGroupToppers();const grpIds=S.groups.map(g=>g.id);
+  if(grpIds.length<2){alert('Need at least 2 groups.');return;}
+  let added=0;
+  const add=(phase,label,tA,tB)=>{
+    if(!tA||!tB)return;const key=mkey(tA.id,tB.id);
+    if(S.schedule.find(s=>s.matchKey===key&&s.phase===phase))return;
+    S.schedule.push({id:uid(),phase,label,teamA:tA.id,teamB:tB.id,date:'',time:'',venue:'',matchKey:key});
+    if(!S.matches[key])S.matches[key]={teamA:tA.id,teamB:tB.id,games:{},doubleA:'',doubleB:''};
+    added++;
+  };
+  const g1=gt[grpIds[0]]||[],g2=gt[grpIds[1]]||[];
+  add('sf','Semi-final 1',g1[0]?.tm,g2[1]?.tm);
+  add('sf','Semi-final 2',g2[0]?.tm,g1[1]?.tm);
+  alert(`Added ${added} knockout fixture(s).`);saveState();
+  filterSched('sf',document.querySelector('[data-phase="sf"]')||document.querySelector('.phase-tab'));
+}
+
+function addSchedItem(){
+  const phase=document.getElementById('sch-phase').value;
+  const tAid=document.getElementById('sch-ta').value;
+  const tBid=document.getElementById('sch-tb').value;
+  const date=document.getElementById('sch-date').value;
+  const time=document.getElementById('sch-time').value;
+  const venue=document.getElementById('sch-venue').value.trim();
+  const label=document.getElementById('sch-label').value.trim();
+  if(tAid&&tBid&&tAid===tBid){alert('A team cannot play itself.');return;}
+  const key=(tAid&&tBid)?mkey(tAid,tBid):'';
+  S.schedule.push({id:uid(),phase,label,teamA:tAid||'',teamB:tBid||'',date,time,venue,matchKey:key});
+  if(key&&!S.matches[key])S.matches[key]={teamA:tAid,teamB:tBid,games:{},doubleA:'',doubleB:''};
+  saveState();filterSched(document.querySelector('.phase-tab.active')?.dataset?.phase||'all',document.querySelector('.phase-tab.active'));
+}
+
+function filterSched(phase,btn){
+  if(btn){document.querySelectorAll('.phase-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+  const el=document.getElementById('sched-list');if(!el)return;
+  const items=phase==='all'?S.schedule:S.schedule.filter(s=>s.phase===phase);
+  if(!items.length){el.innerHTML=`<div class="alert alert-warn"><i class="ti ti-alert-triangle"></i> No fixtures ${phase==='all'?'scheduled':'in this phase'} yet.</div>`;return;}
+  const sorted=[...items].sort((a,b)=>{
+    const ap={group:0,sf:1,final:2,third:3}[a.phase]??0,bp={group:0,sf:1,final:2,third:3}[b.phase]??0;
+    if(ap!==bp)return ap-bp;
+    if(!a.date&&!b.date)return 0;if(!a.date)return 1;if(!b.date)return -1;
+    return(a.date+a.time).localeCompare(b.date+b.time);
+  });
+  const byDate={};sorted.forEach(s=>{const dk=s.date||'__undated';if(!byDate[dk])byDate[dk]=[];byDate[dk].push(s);});
+  const phaseLabels={group:'Group stage',sf:'Semi-final',final:'Final',third:'3rd place play-off'};
+  const phaseCls={group:'ph-group',sf:'ph-sf',final:'ph-final',third:'ph-third'};
+  let h='';
+  Object.entries(byDate).forEach(([dk,dItems])=>{
+    h+=`<div class="timeline-group"><div class="timeline-date"><i class="ti ti-calendar-event"></i> ${dk==='__undated'?'Date TBD':formatDate(dk)}</div>`;
+    dItems.forEach(s=>{
+      const tA=teamById(s.teamA),tB=teamById(s.teamB);
+      const tAn=tA?esc(tA.name):`<em style="color:#aaa">TBD</em>`;
+      const tBn=tB?esc(tB.name):`<em style="color:#aaa">TBD</em>`;
+      const sum=(s.matchKey&&S.matches[s.matchKey]&&tA&&tB)?calcSum(s.matchKey,tA,tB):null;
+      const statusBadge=sum?.done?`<span class="badge bs"><i class="ti ti-trophy"></i> ${esc(sum.leader)}</span>`:sum?`<span class="badge bw">In progress</span>`:`<span class="badge bg">Scheduled</span>`;
+      h+=`<div class="sched-card">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="phase-pill ${phaseCls[s.phase]||'ph-group'}">${phaseLabels[s.phase]||s.phase}</span>
+        ${s.label?`<span style="font-size:.75rem;color:#555">${esc(s.label)}</span>`:''}
+        <div style="flex:1;text-align:center;font-weight:700;font-size:.9rem">${tAn} <span style="color:#aaa;font-weight:400">vs</span> ${tBn}</div>
+        ${statusBadge}
+        ${sum?.gA!=null?`<span style="font-size:.85rem;font-weight:700;color:#555;font-family:ui-monospace,monospace">${sum.gA}–${sum.gB}</span>`:''}
+      </div>
+      <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;align-items:center">
+        ${IS_ADMIN?`
+        <input type="date" value="${s.date||''}" style="width:135px;margin:0;font-size:.75rem" onchange="updSched('${s.id}','date',this.value)">
+        <input type="time" value="${s.time||''}" style="width:100px;margin:0;font-size:.75rem" onchange="updSched('${s.id}','time',this.value)">
+        <input type="text" value="${esc(s.venue)}" placeholder="Venue…" style="min-width:110px;flex:1;margin:0;font-size:.75rem" onchange="updSched('${s.id}','venue',this.value)">
+        `:`
+        <span style="font-size:.75rem;color:#555"><i class="ti ti-calendar" style="vertical-align:-2px"></i> ${s.date?formatDate(s.date):'Date TBD'}</span>
+        ${s.time?`<span style="font-size:.75rem;color:#555"><i class="ti ti-clock" style="vertical-align:-2px"></i> ${s.time}</span>`:''}
+        ${s.venue?`<span style="font-size:.75rem;color:#555"><i class="ti ti-map-pin" style="vertical-align:-2px"></i> ${esc(s.venue)}</span>`:''}
+        `}
+        <div style="margin-left:auto;display:flex;gap:5px">
+          ${s.matchKey&&tA&&tB?`<button class="btn btn-sm btn-primary" onclick="goToMatchup('${s.teamA}','${s.teamB}')"><i class="ti ti-${IS_ADMIN?'edit':'eye'}"></i> Scores</button>`:''}
+          ${IS_ADMIN?`<button class="btn btn-danger btn-sm admin-only" onclick="removeSched('${s.id}')"><i class="ti ti-trash"></i></button>`:''}
+        </div>
+      </div></div>`;
+    });
+    h+=`</div>`;
+  });
+  el.innerHTML=h;
+}
+
+function updSched(id,f,v){const s=S.schedule.find(x=>x.id===id);if(s){s[f]=v;saveState();}}
+function removeSched(id){S.schedule=S.schedule.filter(s=>s.id!==id);saveState();filterSched(document.querySelector('.phase-tab.active')?.dataset?.phase||'all',document.querySelector('.phase-tab.active'));}
+function goToMatchup(aid,bid){switchTab('matches');setTimeout(()=>{const a=document.getElementById('mta'),b=document.getElementById('mtb');if(a&&b){a.value=aid;b.value=bid;loadMatchup();}},60);}
+
+// ══════════════════════════════════════════════════════
+// SCORECARDS TAB
+// ══════════════════════════════════════════════════════
+function renderMatchTab(){
+  const teams=allTeams();
+  const opts='<option value="">— select —</option>'+teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  document.getElementById('tab-matches').innerHTML=`
+  <div class="card" style="padding:.875rem">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="mta" style="flex:1;margin:0" onchange="loadMatchup()">${opts}</select>
+        <span style="font-size:.85rem;color:#8e8e93;font-weight:700;flex-shrink:0">VS</span>
+        <select id="mtb" style="flex:1;margin:0" onchange="loadMatchup()">${opts}</select>
+      </div>
+    </div></div>
+  <div id="matchup-body"></div>`;
+  if(teams.length>=2){document.getElementById('mta').value=teams[0].id;document.getElementById('mtb').value=teams[1].id;loadMatchup();}
+}
+
+function loadMatchup(){
+  const aid=document.getElementById('mta')?.value;
+  const bid=document.getElementById('mtb')?.value;
+  const el=document.getElementById('matchup-body');if(!el)return;
+  if(!aid||!bid||aid===bid){el.innerHTML='<div class="alert alert-warn" style="margin-top:1rem"><i class="ti ti-alert-triangle"></i> Select two different teams.</div>';return;}
+  const tA=teamById(aid),tB=teamById(bid);
+  if(!tA||!tB){el.innerHTML='<div class="alert alert-warn" style="margin-top:1rem"><i class="ti ti-alert-triangle"></i> Teams not found.</div>';return;}
+  drawMatchup(tA,tB,mkey(aid,bid));
+}
+
+function drawMatchup(tA,tB,key){
+  if(!S.matches[key])S.matches[key]={teamA:tA.id,teamB:tB.id,games:{},doubleA:'',doubleB:''};
+  const md=S.matches[key];
+  const sum=calcSum(key,tA,tB);
+  const total=GAMES.length;
+  const needed=Math.floor(total/2)+1;
+
+  let h=`<div class="card" style="margin-top:.5rem">
+  <div style="text-align:center;margin-bottom:12px">
+    <div style="font-size:.75rem;color:#8e8e93;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${esc(tA.name)} vs ${esc(tB.name)}</div>
+    <div style="font-size:2.5rem;font-weight:800;color:#1c1c1e;letter-spacing:-2px;line-height:1">${sum.gA}<span style="color:#e5e5ea;margin:0 8px">–</span>${sum.gB}</div>
+    <div style="font-size:.78rem;color:#8e8e93;margin-top:4px">Games won</div>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-box"><div class="stat-val">${sum.gA}</div><div class="stat-lbl">${esc(tA.name)} games</div></div>
+    <div class="stat-box"><div class="stat-val">${total}</div><div class="stat-lbl">Total games</div></div>
+    <div class="stat-box"><div class="stat-val">${sum.gB}</div><div class="stat-lbl">${esc(tB.name)} games</div></div>
+  </div>`;
+  if(sum.done){h+=`<div class="champion-banner"><div style="font-size:2rem">🏆</div><div style="font-size:1.1rem;font-weight:800;margin-top:.25rem;color:#1c1c1e">${esc(sum.leader)} wins</div><div style="font-size:.82rem;color:#8e8e93;margin-top:4px">${sum.gA}–${sum.gB} games</div></div>`;}
+  h+=`</div>`;
+
+  GAMES.forEach(def=>{
+    const gid='g'+def.n;
+    if(!md.games[gid])md.games[gid]={sets:[],pA:{},pB:{},numSets:def.defSets};
+    h+=drawGame(def,tA,tB,key,gid,md);
+  });
+  document.getElementById('matchup-body').innerHTML=h;
+}
+
+function drawGame(def,tA,tB,key,gid,md){
+  const g=md.games[gid];
+  let h=`<div class="match-row" id="game-${key}-${gid}">
+  <div class="match-header">
+    <div class="match-num">${def.n}</div>
+    <div class="match-title">${esc(def.label)}</div>
+    ${def.role?`<div class="match-role">${esc(def.role)}</div>`:''}
+    ${def.special?`<span class="badge bw"><i class="ti ti-star"></i> ${def.pts} pts</span>`:''}
+  </div>`;
+
+  if(!def.special){
+    const numSets=getNumSets(g,def);
+    const sets=g.sets||[];
+    const decidedAt=decidedAfterSet(sets,def.winSets);
+    const sw=setsWon(sets);
+    const winnerName=sw.a>=def.winSets?tA.name:sw.b>=def.winSets?tB.name:'';
+    h+=`<div class="sets-area">
+    <div class="sets-header">
+      <span style="font-size:.78rem;font-weight:700">Sets</span>
+      <span class="badge bg">Best of ${numSets} · First to ${def.winSets}</span>
+      <span class="badge bs">Score ${sw.a}–${sw.b}</span>
+      ${winnerName?`<span class="set-winner"><i class="ti ti-trophy"></i> ${esc(winnerName)}</span>`:''}
+      ${decidedAt>=0&&decidedAt<numSets-1?`<span class="set-skipped-note"><i class="ti ti-player-skip-forward"></i> Set(s) not needed</span>`:''}
+    </div><div class="sets-list">`;
+    for(let i=0;i<numSets;i++){
+      const sv=(sets[i])||{a:'',b:''};
+      const isSkipped=(decidedAt>=0&&i>decidedAt);
+      if(IS_ADMIN){
+        h+=`<div class="set-block ${isSkipped?'skipped':sw.a>0||sw.b>0?'decided':''}">
+        <span class="set-label">S${i+1}</span>
+        <input type="number" min="0" value="${isSkipped?'':sv.a}" placeholder="—" ${isSkipped?'disabled':''} onchange="updSet('${key}','${gid}',${i},'a',this.value)">
+        <span style="color:#aaa;font-size:.82rem">:</span>
+        <input type="number" min="0" value="${isSkipped?'':sv.b}" placeholder="—" ${isSkipped?'disabled':''} onchange="updSet('${key}','${gid}',${i},'b',this.value)">
+        ${numSets>1?`<button class="set-del" title="Remove set" onclick="removeSet('${key}','${gid}',${i})">×</button>`:''}
+        </div>`;
+      } else {
+        const dA=isSkipped?'N/P':(sv.a!==''?sv.a:'—');const dB=isSkipped?'N/P':(sv.b!==''?sv.b:'—');
+        const winA=!isSkipped&&sv.a!==''&&sv.b!==''&&Number(sv.a)>Number(sv.b);
+        const winB=!isSkipped&&sv.a!==''&&sv.b!==''&&Number(sv.b)>Number(sv.a);
+        h+=`<div class="set-block ${isSkipped?'skipped':''}">
+        <span class="set-label">S${i+1}</span>
+        <span style="width:42px;text-align:center;font-size:.85rem;font-weight:700;font-family:ui-monospace,monospace;color:${winA?'#1a7a3a':'#111'}">${dA}</span>
+        <span style="color:#aaa;font-size:.82rem">:</span>
+        <span style="width:42px;text-align:center;font-size:.85rem;font-weight:700;font-family:ui-monospace,monospace;color:${winB?'#1a7a3a':'#111'}">${dB}</span>
+        </div>`;
+      }
+    }
+    if(IS_ADMIN)h+=`<button class="set-add-btn admin-only" onclick="addSet('${key}','${gid}')"><i class="ti ti-plus"></i> Add set</button>`;
+    h+=`</div></div>`;
+  } else {
+    const sv=(g.sets&&g.sets[0])||{a:'',b:''};
+    if(IS_ADMIN){
+      h+=`<div class="sets-area"><div class="sets-header"><span style="font-size:.78rem;font-weight:700">Points (max ${def.pts})</span></div>
+      <div class="sets-list"><div class="set-block">
+        <span style="font-size:.78rem;font-weight:700;color:#555;margin-right:6px">${esc(tA.name)}</span>
+        <input type="number" min="0" max="${def.pts}" value="${sv.a}" placeholder="—" style="width:64px" onchange="updSet('${key}','${gid}',0,'a',this.value)">
+        <span style="color:#aaa;font-size:.82rem;margin:0 4px">vs</span>
+        <input type="number" min="0" max="${def.pts}" value="${sv.b}" placeholder="—" style="width:64px" onchange="updSet('${key}','${gid}',0,'b',this.value)">
+        <span style="font-size:.78rem;font-weight:700;color:#555;margin-left:6px">${esc(tB.name)}</span>
+      </div>
+      ${sv.a!==''&&sv.b!==''?`<span class="badge bs"><i class="ti ti-trophy"></i> ${esc(Number(sv.a)>Number(sv.b)?tA.name:Number(sv.b)>Number(sv.a)?tB.name:'Draw')}</span>`:''}
+      </div></div>`;
+    } else {
+      h+=`<div class="sets-area"><div class="sets-header"><span style="font-size:.78rem;font-weight:700">Points (max ${def.pts})</span></div>
+      <div class="sets-list"><div class="set-block">
+        <span style="font-size:.85rem;font-weight:700;margin-right:8px">${esc(tA.name)}</span>
+        <span style="font-size:1.2rem;font-weight:800;color:#0071e3;min-width:36px;text-align:center;font-family:ui-monospace,monospace">${sv.a!==''?sv.a:'—'}</span>
+        <span style="color:#aaa;margin:0 8px">vs</span>
+        <span style="font-size:1.2rem;font-weight:800;color:#0071e3;min-width:36px;text-align:center;font-family:ui-monospace,monospace">${sv.b!==''?sv.b:'—'}</span>
+        <span style="font-size:.85rem;font-weight:700;margin-left:8px">${esc(tB.name)}</span>
+      </div>
+      ${sv.a!==''&&sv.b!==''?`<span class="badge bs"><i class="ti ti-trophy"></i> ${esc(Number(sv.a)>Number(sv.b)?tA.name:Number(sv.b)>Number(sv.a)?tB.name:'Draw')}</span>`:''}
+      </div></div>`;
+    }
+  }
+
+  // Player assignments
+  if(def.slots&&def.slots.length){
+    h+=`<div class="players-grid">`;
+    [tA,tB].forEach((tm,side)=>{
+      const isA=side===0;const stored=isA?g.pA:g.pB;
+      h+=`<div class="team-side"><div class="team-side-title"><i class="ti ti-users"></i> ${esc(tm.name)}</div>`;
+      def.slots.forEach(slot=>{
+        const auto=pv(tm,slot.key);const val=(stored&&stored[slot.key])||auto;
+        const isF=slot.type==='f';
+        h+=`<div class="player-row"><label>
+          <span class="badge ${isF?'bf':'bm'}">${isF?'F':'M'}</span> ${slot.key}
+        </label>`;
+        if(IS_ADMIN){
+          h+=`<input type="text" value="${esc(val)}" placeholder="${esc(auto)||'Enter name'}" onchange="updP('${key}','${gid}','${isA?'A':'B'}','${slot.key}',this.value)">`;
+        } else {
+          h+=`<div style="padding:5px 8px;border:1px solid #e5e5ea;border-radius:7px;font-size:.82rem;background:#fff">${esc(val)||`<span style="color:#aaa">Not set</span>`}</div>`;
+        }
+        h+=`</div>`;
+      });
+      h+=`</div>`;
+    });
+    h+=`</div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
+function updSet(key,gid,idx,side,val){
+  const g=S.matches[key].games[gid];if(!g.sets)g.sets=[];
+  if(!g.sets[idx])g.sets[idx]={a:'',b:''};
+  g.sets[idx][side]=val===''?'':Number(val);
+  saveState();drawMatchup(teamById(S.matches[key].teamA),teamById(S.matches[key].teamB),key);
+}
+function addSet(key,gid){
+  const g=S.matches[key].games[gid];
+  if(!g.numSets){const def=GAMES.find(d=>'g'+d.n===gid);g.numSets=def?def.defSets:3;}
+  g.numSets++;saveState();drawMatchup(teamById(S.matches[key].teamA),teamById(S.matches[key].teamB),key);
+}
+function removeSet(key,gid,idx){
+  const g=S.matches[key].games[gid];const def=GAMES.find(d=>'g'+d.n===gid);
+  const numSets=getNumSets(g,def);if(numSets<=1){alert('Must have at least 1 set.');return;}
+  if(!g.numSets)g.numSets=def?def.defSets:3;
+  g.numSets--;if(g.sets&&g.sets[idx])g.sets.splice(idx,1);
+  saveState();drawMatchup(teamById(S.matches[key].teamA),teamById(S.matches[key].teamB),key);
+}
+function updP(key,gid,side,sk,val){const g=S.matches[key].games[gid];const p='p'+side;if(!g[p])g[p]={};g[p][sk]=val;saveState();}
+
+// ══════════════════════════════════════════════════════
+// STANDINGS TAB
+// ══════════════════════════════════════════════════════
+function renderStandingsTab(){
+  const el=document.getElementById('tab-standings');
+  if(!S.groups.length){el.innerHTML='<div style="padding:1rem;color:#aaa">No groups set up yet.</div>';return;}
+  let h=`<div style="display:flex;gap:5px;margin-bottom:1rem;flex-wrap:wrap">`;
+  S.groups.forEach((g,i)=>h+=`<button class="group-tab ${i===0?'active':''}" onclick="showGS('${g.id}',this)">${esc(g.name)}</button>`);
+  h+=`</div><div id="gs-body"></div>`;
+  el.innerHTML=h;showGS(S.groups[0].id,el.querySelector('.group-tab'));
+}
+
+function showGS(gid,btn){
+  document.querySelectorAll('.group-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  const teams=S.teams[gid]||[];const el=document.getElementById('gs-body');
+  if(!teams.length){el.innerHTML='<div style="padding:1rem;color:#aaa">No teams.</div>';return;}
+  const needed=Math.floor(GAMES.length/2)+1;
+  let rows=[];
+  teams.forEach(tm=>{
+    let mp=0,mw=0,ml=0,pts=0,gw=0,gl=0;
+    teams.forEach(opp=>{
+      if(opp.id===tm.id)return;const key=mkey(tm.id,opp.id);const md=S.matches[key];if(!md)return;
+      const tA=teamById(md.teamA),tB=teamById(md.teamB);const sum=calcSum(key,tA,tB);
+      const mg=tm.id===md.teamA?sum.gA:sum.gB,og=tm.id===md.teamA?sum.gB:sum.gA;
+      if(mg>0||og>0){mp++;if(mg>=needed){mw++;pts+=2;}else if(og>=needed)ml++;gw+=mg;gl+=og;}
+    });
+    rows.push({tm,mp,mw,ml,pts,gw,gl,diff:gw-gl});
+  });
+  rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.gw-a.gw));
+  let h=`<div class="card"><table>
+  <thead><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>L</th><th>GW</th><th>GL</th><th>+/-</th><th>Pts</th></tr></thead><tbody>`;
+  rows.forEach((r,i)=>{
+    const q=i<2;
+    h+=`<tr><td style="font-weight:700;color:#555">${i+1}</td>
+    <td style="font-weight:700">${esc(r.tm.name)} ${q?`<span class="badge bp">Q</span>`:''}</td>
+    <td>${r.mp}</td><td>${r.mw}</td><td>${r.ml}</td><td>${r.gw}</td><td>${r.gl}</td>
+    <td style="font-family:ui-monospace,monospace;color:${r.diff>0?'#1a7a3a':r.diff<0?'#ff3b30':'#555'}">${r.diff>0?'+':''}${r.diff}</td>
+    <td><span class="badge bm" style="font-size:.875rem;font-weight:800;font-family:ui-monospace,monospace">${r.pts}</span></td></tr>`;
+  });
+  h+=`</tbody></table><div style="font-size:.72rem;color:#555;margin-top:6px">Q = qualifies for knockout. Win ${needed} of ${GAMES.length} games to win a match.</div></div>`;
+
+  const pairs=[];
+  for(let i=0;i<teams.length;i++) for(let j=i+1;j<teams.length;j++) pairs.push([teams[i],teams[j]]);
+  if(pairs.length){
+    h+=`<div class="card"><div class="card-title"><i class="ti ti-calendar"></i> Fixtures</div>`;
+    pairs.forEach(([tA,tB])=>{
+      const key=mkey(tA.id,tB.id);const md=S.matches[key];
+      const sum=md?calcSum(key,teamById(md.teamA),teamById(md.teamB)):{gA:0,gB:0,done:false,leader:''};
+      const sched=S.schedule.find(s=>s.matchKey===key);
+      const dots=GAMES.map(def=>{if(!md)return`<span class="seq-dot">${def.n}</span>`;const w=gameWin(def,md.games['g'+def.n],tA,tB);return`<span class="seq-dot ${w===tA.id?'won':w===tB.id?'lost':''}">${def.n}</span>`;}).join('');
+      h+=`<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:1px solid #e5e5ea;flex-wrap:wrap">
+      <div style="min-width:160px"><div style="font-size:.85rem;font-weight:700">${esc(tA.name)} vs ${esc(tB.name)}</div>
+      ${sched?`<div style="font-size:.72rem;color:#555">${sched.date?formatDate(sched.date):'TBD'}${sched.time?' · '+sched.time:''}${sched.venue?' · '+esc(sched.venue):''}</div>`:''}
+      </div><div style="display:flex;gap:3px">${dots}</div>
+      <span style="margin-left:auto;font-size:.85rem;font-weight:700;font-family:ui-monospace,monospace">${sum.gA}–${sum.gB}</span>
+      ${sum.done?`<span class="badge bs"><i class="ti ti-trophy"></i> ${esc(sum.leader)}</span>`:`<span class="badge bg">Pending</span>`}
+      ${tA&&tB?`<button class="btn btn-sm" onclick="goToMatchup('${tA.id}','${tB.id}')"><i class="ti ti-${IS_ADMIN?'edit':'eye'}"></i></button>`:''}
+      </div>`;
+    });h+=`</div>`;
+  }
+
+  // Scoring rules
+  h+=`<div class="card"><div class="card-title"><i class="ti ti-info-circle"></i> Scoring rules</div>
+  <div style="font-size:.82rem;color:#555;line-height:2">
+  <div>• Win ${needed} of ${GAMES.length} games → <strong>2 match points</strong></div>
+  ${GAMES.filter(g=>!g.special).map(g=>`<div>• Game ${g.n} (${esc(g.label)}): Best of ${g.defSets}, first to ${g.winSets} sets wins</div>`).join('')}
+  ${GAMES.filter(g=>g.special).map(g=>`<div>• Game ${g.n} (${esc(g.label)}): Direct points scoring (max ${g.pts})</div>`).join('')}
+  </div></div>`;
+  el.innerHTML=h;
+}
+
+// ══════════════════════════════════════════════════════
+// KNOCKOUT TAB
+// ══════════════════════════════════════════════════════
+function renderKnockoutTab(){
+  const el=document.getElementById('tab-knockout');
+  const gt=getGroupToppers();const grpIds=S.groups.map(g=>g.id);
+  let sf1A=null,sf1B=null,sf2A=null,sf2B=null;
+  if(grpIds.length>=2){
+    sf1A=gt[grpIds[0]]?.[0]?.tm||null;sf1B=gt[grpIds[1]]?.[1]?.tm||null;
+    sf2A=gt[grpIds[1]]?.[0]?.tm||null;sf2B=gt[grpIds[0]]?.[1]?.tm||null;
+  }
+  const em=(tA,tB)=>{if(!tA||!tB)return null;const key=mkey(tA.id,tB.id);if(!S.matches[key])S.matches[key]={teamA:tA.id,teamB:tB.id,games:{},doubleA:'',doubleB:''};return key;};
+  const sf1Key=em(sf1A,sf1B),sf2Key=em(sf2A,sf2B);
+  const sf1Sum=sf1Key?calcSum(sf1Key,sf1A,sf1B):null,sf2Sum=sf2Key?calcSum(sf2Key,sf2A,sf2B):null;
+  const sf1Win=sf1Sum?.winnerId?teamById(sf1Sum.winnerId):null,sf1Los=sf1Sum?.winnerId?(sf1Sum.winnerId===sf1A?.id?sf1B:sf1A):null;
+  const sf2Win=sf2Sum?.winnerId?teamById(sf2Sum.winnerId):null,sf2Los=sf2Sum?.winnerId?(sf2Sum.winnerId===sf2A?.id?sf2B:sf2A):null;
+  const finKey=em(sf1Win,sf2Win),thiKey=em(sf1Los,sf2Los);
+  const finSum=finKey?calcSum(finKey,sf1Win,sf2Win):null,thiSum=thiKey?calcSum(thiKey,sf1Los,sf2Los):null;
+  const champion=finSum?.winnerId?teamById(finSum.winnerId):null;
+  const thirdPlace=thiSum?.winnerId?teamById(thiSum.winnerId):null;
+
+  function tBox(team,label,isWin){
+    return`<div class="bracket-box ${!team?'tbd':isWin?'winner':''}">${!team?'TBD':esc(team.name)}<div style="font-size:.65rem;color:#555;font-weight:400;margin-top:2px">${label}</div></div>`;
+  }
+
+  if(champion){
+    el.innerHTML=`<div class="champion-banner">
+      <div style="font-size:2.5rem">🏆</div>
+      <div style="font-size:1.3rem;font-weight:900;margin-top:.25rem;letter-spacing:-.3px">${esc(champion.name)}</div>
+      <div style="font-size:.78rem;color:#555;margin-top:.25rem">Tournament Champion</div>
+      ${thirdPlace?`<div style="font-size:.82rem;color:#555;margin-top:.5rem">🥉 3rd place: <strong>${esc(thirdPlace.name)}</strong></div>`:''}
+    </div>`+ buildBracket(sf1A,sf1B,sf2A,sf2B,sf1Sum,sf2Sum,sf1Win,sf1Los,sf2Win,sf2Los,finSum,thiSum,tBox);
+  } else {
+    el.innerHTML=buildBracket(sf1A,sf1B,sf2A,sf2B,sf1Sum,sf2Sum,sf1Win,sf1Los,sf2Win,sf2Los,finSum,thiSum,tBox);
+  }
+}
+
+function buildBracket(sf1A,sf1B,sf2A,sf2B,sf1Sum,sf2Sum,sf1Win,sf1Los,sf2Win,sf2Los,finSum,thiSum,tBox){
+  return`<div class="card"><div class="card-title"><i class="ti ti-tournament"></i> Knockout Bracket</div>
+  <div style="overflow-x:auto"><div style="display:flex;gap:0;min-width:600px;align-items:center">
+  <div style="display:flex;flex-direction:column;gap:48px;min-width:185px">
+    <div><div style="font-size:.72rem;font-weight:700;color:##0064cc;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Semi-final 1</div>
+    ${tBox(sf1A,'Group 1 — 1st',sf1Sum?.winnerId===sf1A?.id)}<div style="text-align:center;font-size:.72rem;color:#aaa;margin:4px 0">vs</div>${tBox(sf1B,'Group 2 — 2nd',sf1Sum?.winnerId===sf1B?.id)}
+    <div style="margin-top:8px;display:flex;align-items:center;gap:6px">${sf1Sum?.done?`<span class="badge bs"><i class="ti ti-trophy"></i> ${esc(sf1Win?.name||'')}</span>`:'<span class="badge bg">Pending</span>'}
+    ${sf1A&&sf1B?`<button class="btn btn-sm ${IS_ADMIN?'btn-primary':''}" onclick="goToMatchup('${sf1A.id}','${sf1B.id}')"><i class="ti ti-${IS_ADMIN?'edit':'eye'}"></i> Scores</button>`:''}</div></div>
+    <div><div style="font-size:.72rem;font-weight:700;color:##0064cc;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Semi-final 2</div>
+    ${tBox(sf2A,'Group 2 — 1st',sf2Sum?.winnerId===sf2A?.id)}<div style="text-align:center;font-size:.72rem;color:#aaa;margin:4px 0">vs</div>${tBox(sf2B,'Group 1 — 2nd',sf2Sum?.winnerId===sf2B?.id)}
+    <div style="margin-top:8px;display:flex;align-items:center;gap:6px">${sf2Sum?.done?`<span class="badge bs"><i class="ti ti-trophy"></i> ${esc(sf2Win?.name||'')}</span>`:'<span class="badge bg">Pending</span>'}
+    ${sf2A&&sf2B?`<button class="btn btn-sm ${IS_ADMIN?'btn-primary':''}" onclick="goToMatchup('${sf2A.id}','${sf2B.id}')"><i class="ti ti-${IS_ADMIN?'edit':'eye'}"></i> Scores</button>`:''}</div></div>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:space-around;padding:0 14px;height:320px">
+    <div style="width:24px;height:2px;background:#d1d1d6;margin-top:24px"></div>
+    <div style="width:24px;height:2px;background:#d1d1d6;margin-top:24px"></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:48px;min-width:185px">
+    <div><div style="font-size:.72rem;font-weight:700;color:#ff9500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🏆 Final</div>
+    ${tBox(sf1Win,'SF1 winner',finSum?.winnerId===sf1Win?.id)}<div style="text-align:center;font-size:.72rem;color:#aaa;margin:4px 0">vs</div>${tBox(sf2Win,'SF2 winner',finSum?.winnerId===sf2Win?.id)}
+    <div style="margin-top:8px;display:flex;align-items:center;gap:6px">${finSum?.done?`<span class="badge bw">🏆 ${esc(teamById(finSum.winnerId)?.name||'')}</span>`:'<span class="badge bg">Pending SFs</span>'}
+    ${sf1Win&&sf2Win?`<button class="btn btn-sm ${IS_ADMIN?'btn-primary':''}" onclick="goToMatchup('${sf1Win.id}','${sf2Win.id}')"><i class="ti ti-${IS_ADMIN?'edit':'eye'}"></i> Scores</button>`:''}</div></div>
+    <div><div style="font-size:.72rem;font-weight:700;color:#1a7a3a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🥉 3rd place</div>
+    ${tBox(sf1Los,'SF1 loser',thiSum?.winnerId===sf1Los?.id)}<div style="text-align:center;font-size:.72rem;color:#aaa;margin:4px 0">vs</div>${tBox(sf2Los,'SF2 loser',thiSum?.winnerId===sf2Los?.id)}
+    <div style="margin-top:8px;display:flex;align-items:center;gap:6px">${thiSum?.done?`<span class="badge bs">🥉 ${esc(teamById(thiSum.winnerId)?.name||'')}</span>`:'<span class="badge bg">Pending SFs</span>'}
+    ${sf1Los&&sf2Los?`<button class="btn btn-sm" onclick="goToMatchup('${sf1Los.id}','${sf2Los.id}')"><i class="ti ti-${IS_ADMIN?'edit':'eye'}"></i> Scores</button>`:''}</div></div>
+  </div></div></div></div>`;
+}
+
+// ══════════════════════════════════════════════════════
+// EXPORT TAB
+// ══════════════════════════════════════════════════════
+function renderExportTab(){
+  let h=`<div class="card">
+  <div class="card-title"><i class="ti ti-table-export"></i> Export Data</div>
+  <div class="alert alert-info"><i class="ti ti-info-circle"></i>
+  <div>Download tournament data as CSV files for analysis in Excel, Google Sheets, or any BI tool.</div></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:.5rem">`;
+  const exports=[
+    {icon:'ti-users',title:'Teams & Players',desc:'All teams, groups, and player rosters.',fn:'exportTeams',col:'#0071e3'},
+    {icon:'ti-sword',title:'Match Results',desc:'Every match with game scores and winners.',fn:'exportMatchResults',col:'#ff3b30'},
+    {icon:'ti-ball-tennis',title:'Game-by-Game Scores',desc:'Set-by-set scores for every game.',fn:'exportGameScores',col:'#ff9500'},
+    {icon:'ti-users-group',title:'Player Appearances',desc:'Every player in each game, with roles.',fn:'exportPlayerAppearances',col:'#6b21a8'},
+    {icon:'ti-calendar',title:'Schedule',desc:'All fixtures with dates, venues, results.',fn:'exportSchedule',col:'#1a7a3a'},
+    {icon:'ti-list-numbers',title:'Group Standings',desc:'Points table per group.',fn:'exportStandings',col:'##0064cc'},
+    {icon:'ti-database-export',title:'Full Data Dump',desc:'Everything in one file.',fn:'exportAll',col:'#ff9500'},
+  ];
+  exports.forEach(ex=>{
+    h+=`<div style="border:1px solid #e5e5ea;border-radius:12px;padding:1rem;background:#f9f9fb;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="width:36px;height:36px;border-radius:7px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid #e5e5ea">
+        <i class="ti ${ex.icon}" style="font-size:18px;color:${ex.col}"></i>
+      </div>
+      <div style="font-size:.9rem;font-weight:700">${ex.title}</div>
+    </div>
+    <div style="font-size:.75rem;color:#555;flex:1">${ex.desc}</div>
+    <button class="btn btn-primary btn-sm" onclick="${ex.fn}()"><i class="ti ti-download"></i> Download CSV</button>
+    </div>`;
+  });
+  h+=`</div></div>`;
+
+  h+=`<div class="card"><div class="card-title"><i class="ti ti-eye"></i> Data preview</div>
+  <div style="display:flex;gap:6px;margin-bottom:.875rem;flex-wrap:wrap">
+    <button class="phase-tab active" onclick="previewExport('matches',this)">Match results</button>
+    <button class="phase-tab" onclick="previewExport('games',this)">Game scores</button>
+    <button class="phase-tab" onclick="previewExport('schedule',this)">Schedule</button>
+    <button class="phase-tab" onclick="previewExport('standings',this)">Standings</button>
+  </div>
+  <div id="export-preview" style="overflow-x:auto;max-height:360px;overflow-y:auto"></div>
+  </div>`;
+  document.getElementById('tab-export').innerHTML=h;
+  previewExport('matches',document.querySelector('#tab-export .phase-tab'));
+}
+
+function previewExport(type,btn){
+  document.querySelectorAll('#tab-export .phase-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const el=document.getElementById('export-preview');
+  let rows=[];
+  if(type==='matches')rows=buildMatchResults();
+  if(type==='games')rows=buildGameScores();
+  if(type==='schedule')rows=buildSchedule();
+  if(type==='standings')rows=buildStandings();
+  if(!rows.length){el.innerHTML='<div style="color:#aaa;padding:.5rem;font-size:.82rem">No data yet.</div>';return;}
+  const cols=Object.keys(rows[0]);
+  let h=`<table class="preview-table"><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>`;
+  rows.slice(0,25).forEach(r=>h+=`<tr>${cols.map(c=>`<td>${esc(String(r[c]??''))}</td>`).join('')}</tr>`);
+  if(rows.length>25)h+=`<tr><td colspan="${cols.length}" style="text-align:center;color:#aaa;font-style:italic">…${rows.length-25} more rows</td></tr>`;
+  el.innerHTML=h+'</tbody></table>';
+}
+
+// ─── Export Builders ────────────────────────────────
+function buildMatchResults(){
+  const rows=[];
+  Object.entries(S.matches).forEach(([key,md])=>{
+    const tA=teamById(md.teamA),tB=teamById(md.teamB);if(!tA||!tB)return;
+    const sum=calcSum(key,tA,tB);const sched=S.schedule.find(s=>s.matchKey===key);
+    rows.push({match_key:key,phase:sched?.phase||'',label:sched?.label||'',date:sched?.date||'',time:sched?.time||'',venue:sched?.venue||'',
+      team_a:tA.name,team_b:tB.name,games_won_a:sum.gA,games_won_b:sum.gB,
+      winner:sum.winnerId?teamById(sum.winnerId)?.name||'':'',status:sum.done?'Complete':'In progress'});
+  });return rows;
+}
+
+function buildGameScores(){
+  const rows=[];
+  Object.entries(S.matches).forEach(([key,md])=>{
+    const tA=teamById(md.teamA),tB=teamById(md.teamB);if(!tA||!tB)return;
+    const sched=S.schedule.find(s=>s.matchKey===key);
+    GAMES.forEach(def=>{
+      const gid='g'+def.n;const g=md.games[gid];if(!g)return;
+      const numSets=getNumSets(g,def);
+      const decidedAt=def.special?-1:decidedAfterSet(g.sets||[],def.winSets);
+      const gWinner=gameWin(def,g,tA,tB);
+      const sw=def.special?{a:0,b:0}:setsWon(g.sets);
+      const row={match_key:key,phase:sched?.phase||'',date:sched?.date||'',team_a:tA.name,team_b:tB.name,
+        game_number:def.n,game_type:def.label,sets_configured:def.special?'N/A':numSets,
+        sets_won_a:def.special?'N/A':sw.a,sets_won_b:def.special?'N/A':sw.b,
+        game_winner:gWinner?teamById(gWinner)?.name||'':''};
+      if(!def.special){
+        for(let i=0;i<numSets;i++){
+          const sv=(g.sets&&g.sets[i])||{a:'',b:''};
+          const skipped=(decidedAt>=0&&i>decidedAt);
+          row[`set${i+1}_a`]=skipped?'N/P':sv.a;row[`set${i+1}_b`]=skipped?'N/P':sv.b;
+        }
+      } else {const sv=(g.sets&&g.sets[0])||{a:'',b:''};row['points_a']=sv.a;row['points_b']=sv.b;}
+      rows.push(row);
+    });
+  });return rows;
+}
+
+function buildPlayerAppearances(){
+  const rows=[];
+  Object.entries(S.matches).forEach(([key,md])=>{
+    const tA=teamById(md.teamA),tB=teamById(md.teamB);if(!tA||!tB)return;
+    const sched=S.schedule.find(s=>s.matchKey===key);
+    GAMES.forEach(def=>{
+      const gid='g'+def.n;const g=md.games[gid];if(!g||!def.slots)return;
+      [[tA,'A',g.pA],[tB,'B',g.pB]].forEach(([tm,side,stored])=>{
+        def.slots.forEach(slot=>{
+          const auto=pv(tm,slot.key);const val=(stored&&stored[slot.key])||auto;
+          rows.push({match_key:key,phase:sched?.phase||'',date:sched?.date||'',team:tm.name,
+            opponent:side==='A'?tB.name:tA.name,game_number:def.n,game_type:def.label,
+            player_slot:slot.key,player_gender:slot.type==='f'?'Female':'Male',player_name:val});
+        });
+      });
+    });
+  });return rows;
+}
+
+function buildTeams(){
+  const rows=[];
+  S.groups.forEach(g=>{
+    (S.teams[g.id]||[]).forEach(tm=>{
+      FEMALE_KEYS.forEach((k,i)=>{rows.push({group:g.name,team:tm.name,slot:k,player_name:pv(tm,k),player_gender:'Female'});});
+      MALE_KEYS.forEach((k,i)=>{rows.push({group:g.name,team:tm.name,slot:k,player_name:pv(tm,k),player_gender:'Male'});});
+    });
+  });return rows;
+}
+
+function buildSchedule(){
+  const phaseLabels={group:'Group stage',sf:'Semi-final',final:'Final',third:'3rd place play-off'};
+  return S.schedule.map(s=>{
+    const tA=teamById(s.teamA),tB=teamById(s.teamB);
+    const sum=(s.matchKey&&S.matches[s.matchKey]&&tA&&tB)?calcSum(s.matchKey,tA,tB):null;
+    return{id:s.id,phase:phaseLabels[s.phase]||s.phase,label:s.label||'',
+      team_a:tA?.name||'TBD',team_b:tB?.name||'TBD',date:s.date||'',time:s.time||'',venue:s.venue||'',
+      result:sum?`${sum.gA}-${sum.gB}`:'',winner:sum?.winnerId?teamById(sum.winnerId)?.name||'':''};
+  });
+}
+
+function buildStandings(){
+  const needed=Math.floor(GAMES.length/2)+1;
+  const rows=[];
+  S.groups.forEach(g=>{
+    const teams=S.teams[g.id]||[];let trows=[];
+    teams.forEach(tm=>{
+      let mp=0,mw=0,ml=0,pts=0,gw=0,gl=0;
+      teams.forEach(opp=>{
+        if(opp.id===tm.id)return;const key=mkey(tm.id,opp.id);const md=S.matches[key];if(!md)return;
+        const tA=teamById(md.teamA),tB=teamById(md.teamB);const sum=calcSum(key,tA,tB);
+        const mg=tm.id===md.teamA?sum.gA:sum.gB,og=tm.id===md.teamA?sum.gB:sum.gA;
+        if(mg>0||og>0){mp++;if(mg>=needed){mw++;pts+=2;}else if(og>=needed)ml++;gw+=mg;gl+=og;}
+      });
+      trows.push({group:g.name,team:tm.name,matches_played:mp,wins:mw,losses:ml,games_won:gw,games_lost:gl,game_diff:gw-gl,points:pts});
+    });
+    trows.sort((a,b)=>b.points-a.points||(b.game_diff-a.game_diff));
+    trows.forEach((r,i)=>{r.rank=i+1;r.qualifies=i<2?'Yes':'No';});
+    rows.push(...trows);
+  });
+  return rows;
+}
+
+function rowsToCSV(rows){
+  if(!rows.length)return'No data';
+  const cols=Object.keys(rows[0]);
+  const lines=[cols.join(','),...rows.map(r=>cols.map(c=>`"${raw(String(r[c]??''))}"`).join(','))];
+  return lines.join('\r\n');
+}
+
+function dlFile(content,filename){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:'text/csv'}));
+  a.download=filename;a.click();
+}
+
+function safeName(){return(S.config.name||'tournament').replace(/[^a-zA-Z0-9]/g,'_');}
+function exportTeams(){dlFile(rowsToCSV(buildTeams()),safeName()+'_teams_players.csv')}
+function exportMatchResults(){dlFile(rowsToCSV(buildMatchResults()),safeName()+'_match_results.csv')}
+function exportGameScores(){dlFile(rowsToCSV(buildGameScores()),safeName()+'_game_scores.csv')}
+function exportPlayerAppearances(){dlFile(rowsToCSV(buildPlayerAppearances()),safeName()+'_player_appearances.csv')}
+function exportSchedule(){dlFile(rowsToCSV(buildSchedule()),safeName()+'_schedule.csv')}
+function exportStandings(){dlFile(rowsToCSV(buildStandings()),safeName()+'_standings.csv')}
+function exportAll(){
+  const sections=[
+    {name:'MATCH_RESULTS',rows:buildMatchResults()},
+    {name:'GAME_SCORES',rows:buildGameScores()},
+    {name:'PLAYER_APPEARANCES',rows:buildPlayerAppearances()},
+    {name:'TEAMS_AND_PLAYERS',rows:buildTeams()},
+    {name:'SCHEDULE',rows:buildSchedule()},
+    {name:'STANDINGS',rows:buildStandings()}
+  ];
+  let out='';
+  sections.forEach(s=>{out+=`\r\n## SECTION: ${s.name}\r\n`;out+=rowsToCSV(s.rows)+'\r\n';});
+  dlFile(out.trim(),safeName()+'_full_export.csv');
+}
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  // ── URL-based viewer entry (?bin=BINID or ?bin=BINID&tid=TID) ──────
+  const params=new URLSearchParams(location.search);
+  const urlBin=params.get('bin');
+  const urlTid=params.get('tid')||'viewer_'+urlBin;
+
+  if(urlBin){
+    // Viewer clicked a share link — skip landing & gate completely
+    CURRENT_T_ID=urlTid;
+    IS_ADMIN=false;
+    _jbBinId=urlBin;
+    _jbKey='';          // public read needs no key
+    enterViewerFromUrl();
+  } else {
+    showLanding();
+  }
+});
+
+async function enterViewerFromUrl(){
+  // Show a loading screen while we fetch the tournament state
+  document.getElementById('landing').style.display='none';
+  document.getElementById('gate').classList.add('gone');
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('app-tname').textContent='Loading…';
+  document.getElementById('mode-banner').innerHTML=
+    `<div class="viewer-banner-bar"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Loading live tournament data…</div>`;
+  document.getElementById('tabs-bar').style.visibility='hidden';
+  document.getElementById('sync-status').style.display='';
+
+  try{
+    // Pull state from JSONBin — public read, no key required
+    const res=await fetch(JB_API+'/b/'+_jbBinId+'/latest',{
+      headers:{'X-Bin-Meta':'false'}
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status+' — bin may be private or invalid');
+    const data=await res.json();
+    const rec=data.record||data;
+    if(!rec||!rec.state) throw new Error('No tournament data found in this bin');
+
+    S=rec.state;
+    CURRENT_T_ID=rec.tournamentId||CURRENT_T_ID;
+    _lastRemoteTs=rec.ts||0;
+
+    // Cache locally so refreshes are instant
+    saveTState(CURRENT_T_ID,S);
+
+    // Merge into local tournament list if not already there
+    const list=getTList();
+    if(!list.find(t=>t.id===CURRENT_T_ID)){
+      list.unshift({id:CURRENT_T_ID,name:S.config.name,sport:S.config.sport||'',
+        emoji:S.config.emoji||'🏆',lastSaved:rec.ts||Date.now()});
+      saveTList(list);
+    }
+
+    // Also save the bin ID keyed to this tournament
+    localStorage.setItem(JB_BIN_STORE+'_'+CURRENT_T_ID,_jbBinId);
+
+    _finishEnterViewer();
+  } catch(err){
+    document.getElementById('mode-banner').innerHTML=
+      `<div style="background:#fff0f0;border-bottom:1px solid #fecaca;padding:.75rem 1rem;color:#c00;font-size:13px;display:flex;align-items:center;gap:8px">
+        <i class="ti ti-alert-circle"></i>
+        <span><strong>Could not load tournament:</strong> ${err.message}.
+        <br><span style="font-size:12px">Make sure the bin is set to <strong>public</strong> in JSONBin, then refresh.</span></span>
+      </div>`;
+    document.getElementById('tabs-bar').style.visibility='visible';
+    document.getElementById('app-tname').textContent='Error';
+    setSyncStatus('error','Load failed');
+  }
+}
+
+function _finishEnterViewer(){
+  GAMES=S.config.gamesConfig||[];
+  MALE_KEYS=[];FEMALE_KEYS=[];
+  for(let i=1;i<=S.config.male;i++) MALE_KEYS.push('m'+i);
+  for(let i=1;i<=S.config.female;i++) FEMALE_KEYS.push('f'+i);
+
+  document.getElementById('app-tname').textContent=S.config.name;
+  const badge=document.getElementById('app-role-badge');
+  badge.textContent='Viewer';badge.className='app-role-badge rb-viewer';
+  document.getElementById('viewer-login-btn').style.display='';
+  document.getElementById('tabs-bar').style.visibility='visible';
+  document.body.classList.add('viewer-mode');
+
+  document.getElementById('mode-banner').innerHTML=
+    `<div class="viewer-banner-bar">
+      <i class="ti ti-eye"></i>
+      <strong>Live viewer</strong> — Scores refresh automatically every 6 s
+      <span style="margin-left:auto;font-size:12px;opacity:.8">${esc(S.config.name)}</span>
+    </div>`;
+
+  setSyncStatus('ok','Live sync on');
+  switchTab('schedule');
+
+  // Start polling — no key needed for public bins
+  stopPolling();
+  _pollTimer=setInterval(()=>jbPullPublic(),POLL_INTERVAL);
+  jbPullPublic();          // immediate refresh
+}
+</script>
+</body>
+</html>
