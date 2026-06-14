@@ -877,6 +877,9 @@ function doLogout(){
   openTournament(CURRENT_T_ID);
 }
 function toggleGatePw(){const i=document.getElementById('gate-pw');const icon=document.getElementById('gate-eye-icon');i.type=i.type==='password'?'text':'password';icon.className=i.type==='password'?'ti ti-eye':'ti ti-eye-off';}
+function showAdminGate(){const vs=document.getElementById('gate-viewer-section');const as=document.getElementById('gate-admin-section');if(vs)vs.style.display='none';if(as)as.style.display='block';const pw=document.getElementById('gate-pw');const err=document.getElementById('gate-err');if(pw){pw.value='';setTimeout(()=>pw.focus(),50);}if(err)err.textContent='';}
+function hideAdminGate(){const vs=document.getElementById('gate-viewer-section');const as=document.getElementById('gate-admin-section');if(as)as.style.display='none';if(vs)vs.style.display='block';const err=document.getElementById('gate-err');if(err)err.textContent='';}
+function gateAdminSubmit(){const state=getTState(CURRENT_T_ID);const pw=document.getElementById('gate-pw');const err=document.getElementById('gate-err');const correctPw=(state&&state.config&&state.config.pw)||ADMIN_PW_DEFAULT;if(!pw||pw.value!==correctPw){if(pw){pw.classList.add('err');setTimeout(()=>pw.classList.remove('err'),500);}if(err)err.textContent='Incorrect password.';return;}IS_ADMIN=true;document.getElementById('gate').classList.add('gone');pw.value='';enterApp();}
 function toggleFieldPw(id){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';}
 function openChpw(){document.getElementById('chpw-overlay').classList.add('open');document.getElementById('chpw-err').textContent='';['chpw-cur','chpw-new','chpw-con'].forEach(x=>document.getElementById(x).value='');}
 function doChangePw(){
@@ -1095,8 +1098,6 @@ function copyShareLink(){
   try{
     navigator.clipboard.writeText(inp.value).then(()=>showToast('Link copied! Share with viewers 🎉','success'));
   }catch(e){inp.select();document.execCommand('copy');showToast('Link copied!','success');}
-}
-
 }
 
 // ══════════════════════════════════════════════════════
