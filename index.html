@@ -276,7 +276,7 @@ body.viewer-mode .admin-only{display:none!important}
       <div class="new-t-btn-icon"><i class="ti ti-plus"></i></div>
       <div class="new-t-btn-label">New Tournament</div>
     </button>
-    <div class="landing-footer">Data syncs live via JSONBin · Free &amp; no server needed</div>
+    <div class="landing-footer">Data syncs live via Firebase · Free Spark plan · No credit card needed</div>
   </div>
 </div>
 
@@ -421,81 +421,77 @@ body.viewer-mode .admin-only{display:none!important}
   </div>
 </div>
 
-<!-- ─── SYNC MODAL (JSONBin) ─────────────────────── -->
+<!-- ─── SYNC MODAL (Firebase) ───────────────────────── -->
 <div class="modal-overlay" id="sync-modal">
   <div class="modal" style="max-width:560px">
     <div class="modal-drag"></div>
-    <div class="modal-title"><i class="ti ti-cloud-upload"></i> Live Sync via JSONBin</div>
+    <div class="modal-title"><i class="ti ti-cloud-upload"></i> Live Sync via Firebase</div>
     <div style="font-size:.82rem;color:#555;margin-bottom:1rem;line-height:1.7">
-      Connect a free JSONBin account so scores sync live to all viewers on any device — no server needed.
+      Connect a free Firebase Realtime Database — no credit card, no request limits, syncs live to all viewers.
     </div>
 
     <div style="background:#f9f9fb;border:1px solid #e5e5ea;border-radius:12px;padding:1rem;margin-bottom:1rem">
-      <div style="font-size:.82rem;font-weight:700;margin-bottom:.625rem;color:#ff9500"><i class="ti ti-list-numbers"></i> Setup (2 min, completely free)</div>
-      <div style="font-size:.82rem;line-height:2.2;color:#555">
-        <div><span style="background:#0071e3;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;margin-right:8px;flex-shrink:0">1</span>
-          Go to <a href="https://jsonbin.io" target="_blank">jsonbin.io</a> &rarr; Sign up free &rarr; Dashboard &rarr; <strong>API Keys</strong>
+      <div style="font-size:.82rem;font-weight:700;margin-bottom:.625rem;color:#ff9f0a"><i class="ti ti-list-numbers"></i> Setup (3 min, completely free)</div>
+      <div style="font-size:.82rem;line-height:2.4;color:#555">
+        <div><span style="background:#0a84ff;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;margin-right:8px">1</span>
+          Go to <a href="https://console.firebase.google.com" target="_blank" style="color:#0a84ff;font-weight:600">console.firebase.google.com</a> → <strong>Add project</strong> (any name, disable Analytics)
         </div>
-        <div><span style="background:#0071e3;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;margin-right:8px;flex-shrink:0">2</span>
-          Copy your <strong>Master Key</strong> <code style="font-size:.78rem;background:#f5f5f7;padding:2px 7px;border-radius:4px;border:1px solid #e5e5ea">$2a$10$… or $2b$10$…</code>
+        <div><span style="background:#0a84ff;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;margin-right:8px">2</span>
+          Left sidebar → <strong>Build → Realtime Database → Create Database</strong> → choose region → <strong>Start in test mode</strong>
         </div>
-        <div><span style="background:#0071e3;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;margin-right:8px;flex-shrink:0">3</span>
-          Paste it below &rarr; click <strong>Connect &amp; Save</strong> &mdash; a bin is auto-created for you
+        <div><span style="background:#0a84ff;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;margin-right:8px">3</span>
+          Copy the database URL shown (e.g. <code style="font-size:.75rem;background:#f2f2f7;padding:1px 6px;border-radius:4px">https://my-app-default-rtdb.firebaseio.com</code>)
+        </div>
+        <div><span style="background:#0a84ff;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;margin-right:8px">4</span>
+          Paste it below → <strong>Connect &amp; Save</strong>
         </div>
       </div>
     </div>
 
-    <div id="jb-connect-form">
-      <label style="font-weight:700;font-size:.82rem"><i class="ti ti-key"></i> JSONBin Master Key</label>
+    <div id="fb-connect-form">
+      <label style="font-weight:700;font-size:.82rem"><i class="ti ti-link"></i> Firebase Realtime Database URL</label>
       <div style="display:flex;gap:8px;margin-bottom:6px">
-        <div style="position:relative;flex:1">
-          <input type="password" id="jb-key-input" placeholder="$2a$ or $2b$ master key from JSONBin" style="margin:0;padding-right:40px;font-family:ui-monospace,monospace;font-size:.8rem">
-          <button style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#aaa;font-size:1rem;padding:0" onclick="toggleFieldPw('jb-key-input')"><i class="ti ti-eye"></i></button>
-        </div>
-        <button class="btn btn-primary" onclick="jbConnect()" id="jb-connect-btn"><i class="ti ti-plug"></i> Connect &amp; Save</button>
+        <input type="url" id="fb-url-input"
+          placeholder="https://your-app-default-rtdb.firebaseio.com"
+          style="flex:1;margin:0;font-family:ui-monospace,monospace;font-size:.78rem">
+        <button class="btn btn-primary" onclick="fbConnect()" id="fb-connect-btn">
+          <i class="ti ti-plug"></i> Connect &amp; Save
+        </button>
       </div>
-      <div id="jb-connect-status" style="font-size:.78rem;min-height:16px;margin-bottom:.75rem"></div>
-      <details style="margin-bottom:.5rem">
-        <summary style="font-size:.75rem;color:#555;cursor:pointer;user-select:none;padding:4px 0">&#9656; Already have a Bin ID? Paste it here (optional — leave blank to auto-create)</summary>
-        <div style="margin-top:8px">
-          <label>Existing Bin ID</label>
-          <input type="text" id="jb-bin-input" placeholder="e.g. 64a1f3c9acd6cb37b2b36f1a" style="font-family:ui-monospace,monospace;font-size:.8rem">
-        </div>
-      </details>
+      <div id="fb-connect-status" style="font-size:.78rem;min-height:16px;margin-bottom:.75rem"></div>
     </div>
 
-    <div id="jb-connected-panel" style="display:none">
+    <div id="fb-connected-panel" style="display:none">
       <div class="alert alert-success" style="margin-bottom:.875rem">
         <i class="ti ti-circle-check" style="font-size:1.2rem;flex-shrink:0"></i>
         <div>
-          <strong>JSONBin connected!</strong> All score changes push live to viewers automatically.<br>
-          <span style="font-size:.72rem;opacity:.8">Bin ID: <span id="jb-bin-display" style="font-family:ui-monospace,monospace"></span></span>
+          <strong>Firebase connected!</strong> All score changes sync live to viewers automatically.<br>
+          <span style="font-size:.72rem;opacity:.8">DB: <span id="fb-url-display" style="font-family:ui-monospace,monospace;font-size:.7rem"></span></span>
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.75rem">
-        <button class="btn btn-sm btn-success" onclick="jbPush(true)"><i class="ti ti-cloud-upload"></i> Push now</button>
-        <button class="btn btn-sm btn-primary" onclick="jbPull(true)"><i class="ti ti-cloud-download"></i> Pull latest</button>
-        <button class="btn btn-sm btn-danger" onclick="jbDisconnect()"><i class="ti ti-plug-x"></i> Disconnect</button>
+        <button class="btn btn-sm btn-success" onclick="fbPush(true)"><i class="ti ti-cloud-upload"></i> Push now</button>
+        <button class="btn btn-sm btn-primary" onclick="fbPull(true)"><i class="ti ti-cloud-download"></i> Pull latest</button>
+        <button class="btn btn-sm btn-danger" onclick="fbDisconnect()"><i class="ti ti-plug-x"></i> Disconnect</button>
       </div>
-      <div id="jb-last-sync" style="font-size:.72rem;color:#555;margin-bottom:.75rem"></div>
+      <div id="fb-last-sync" style="font-size:.72rem;color:#8e8e93;margin-bottom:.75rem"></div>
 
-      <!-- ── Viewer share link ── -->
-      <div id="jb-share-box" style="display:none;background:#f0f7ff;border:1px solid #b8d4ff;border-radius:10px;padding:.875rem">
+      <div id="fb-share-box" style="display:none;background:#f0f7ff;border:1px solid #b8d4ff;border-radius:10px;padding:.875rem">
         <div style="font-size:13px;font-weight:700;color:#0047a3;margin-bottom:.375rem;display:flex;align-items:center;gap:6px">
           <i class="ti ti-link"></i> Share this link with viewers
         </div>
         <div style="font-size:12px;color:#555;margin-bottom:.5rem">
-          Anyone with this link can watch scores live — no login, no setup, works on any device.
+          Anyone with this link sees live scores — no login, no setup, works on any device.
         </div>
         <div style="display:flex;gap:6px">
-          <input type="text" id="jb-share-link" readonly
+          <input type="text" id="fb-share-link" readonly
             style="flex:1;margin:0;font-size:11px;font-family:ui-monospace,monospace;background:#fff;cursor:text;color:#333">
           <button class="btn btn-sm btn-primary" onclick="copyShareLink()">
             <i class="ti ti-copy"></i> Copy
           </button>
         </div>
-        <div style="font-size:11px;color:#0064cc;margin-top:.375rem">
-          ⚠️ Make sure your JSONBin bin is set to <strong>Public</strong> — check in your JSONBin dashboard.
+        <div style="font-size:11px;color:#0064cc;margin-top:.5rem">
+          💡 Firebase test mode allows public reads for 30 days. After that, update Rules in Firebase console to <code style="background:#e8f1ff;padding:1px 4px;border-radius:3px">"read": true</code>
         </div>
       </div>
     </div>
@@ -517,7 +513,7 @@ body.viewer-mode .admin-only{display:none!important}
 </div>
 
 <!-- ─── SYNC STATUS PILL ─────────────────────────── -->
-<div id="sync-status" onclick="openSyncModal()" title="JSONBin sync — click to configure" style="display:none">
+<div id="sync-status" onclick="openSyncModal()" title="Firebase sync — click to configure" style="display:none">
   <span id="sync-dot" class="local"></span>
   <span id="sync-label">Local only</span>
 </div>
@@ -537,12 +533,11 @@ body.viewer-mode .admin-only{display:none!important}
 // CONSTANTS & STORAGE KEYS
 // ══════════════════════════════════════════════════════
 const TOURNAMENTS_KEY='thub_tournaments';
-const JB_KEY_STORE='thub_jb_key';    // JSONBin master key (per-browser)
-const JB_BIN_STORE='thub_jb_bin';    // JSONBin bin ID (shared via localStorage)
+const FB_URL_STORE='thub_fb_url';     // Firebase DB URL (per-browser)
+const FB_TID_STORE='thub_fb_tid';     // tournament path key
 const ADMIN_PW_DEFAULT='admin';
-const JB_API='https://api.jsonbin.io/v3';
-const POLL_INTERVAL=6000;            // viewers poll every 6 s
-const PUSH_DEBOUNCE=1600;            // debounce admin saves
+const POLL_INTERVAL=7000;             // viewers poll every 7 s
+const PUSH_DEBOUNCE=1800;             // debounce admin saves
 
 // ══════════════════════════════════════════════════════
 // GLOBALS
@@ -553,8 +548,8 @@ let S={};
 let GAMES=[];
 let MALE_KEYS=[];
 let FEMALE_KEYS=[];
-let _jbKey='';            // JSONBin master key
-let _jbBinId='';          // JSONBin bin ID for current tournament
+let _fbUrl='';             // Firebase Realtime Database URL
+let _fbPath='';            // path within DB for this tournament
 let _pushTimer=null;
 let _pollTimer=null;
 let _lastRemoteTs=0;
@@ -626,9 +621,9 @@ function openTournament(id){
   const list=getTList();
   const meta=list.find(t=>t.id===id);
   if(!meta)return;
-  // Also load bin ID if stored for this tournament
-  const storedBin=localStorage.getItem(JB_BIN_STORE+'_'+id)||'';
-  if(storedBin&&!_jbBinId) _jbBinId=storedBin;
+  // Also load Firebase URL if stored
+  const storedFb=localStorage.getItem(FB_URL_STORE)||'';
+  if(storedFb&&!_fbUrl) _fbUrl=storedFb;
   document.getElementById('gate-emoji').textContent=meta.emoji||'🏆';
   document.getElementById('gate-tname').textContent=meta.name;
   document.getElementById('landing').style.display='none';
@@ -654,7 +649,7 @@ function backToLanding(){
   document.getElementById('app').classList.remove('visible');
   document.getElementById('gate').classList.add('gone');
   document.getElementById('sync-status').style.display='none';
-  // If viewer arrived via URL, going "back" reloads landing without ?bin param
+  // If viewer arrived via URL, going "back" reloads landing without ?fburl param
   if(location.search){
     history.replaceState({},'',location.pathname);
   }
@@ -825,7 +820,7 @@ function gateSubmit(){
 function enterApp(){
   // Load state — fall back to JSONBin pull if not in localStorage
   let state=getTState(CURRENT_T_ID);
-  if(!state&&_jbBinId){
+  if(!state&&_fbUrl){
     // Will async-load then re-enter
     enterViewerFromUrl();
     return;
@@ -882,36 +877,6 @@ function doLogout(){
   openTournament(CURRENT_T_ID);
 }
 function toggleGatePw(){const i=document.getElementById('gate-pw');const icon=document.getElementById('gate-eye-icon');i.type=i.type==='password'?'text':'password';icon.className=i.type==='password'?'ti ti-eye':'ti ti-eye-off';}
-
-function showAdminGate(){
-  document.getElementById('gate-viewer-section').style.display='none';
-  document.getElementById('gate-admin-section').style.display='block';
-  document.getElementById('gate-pw').value='';
-  document.getElementById('gate-err').textContent='';
-  document.getElementById('gate-pw').focus();
-}
-
-function hideAdminGate(){
-  document.getElementById('gate-admin-section').style.display='none';
-  document.getElementById('gate-viewer-section').style.display='block';
-  document.getElementById('gate-err').textContent='';
-}
-
-function gateAdminSubmit(){
-  const state=getTState(CURRENT_T_ID);
-  const pw=document.getElementById('gate-pw').value;
-  const correctPw=state?.config?.pw||ADMIN_PW_DEFAULT;
-  if(pw!==correctPw){
-    document.getElementById('gate-pw').classList.add('err');
-    document.getElementById('gate-err').textContent='Incorrect password.';
-    setTimeout(()=>document.getElementById('gate-pw').classList.remove('err'),500);
-    return;
-  }
-  IS_ADMIN=true;
-  document.getElementById('gate').classList.add('gone');
-  document.getElementById('gate-pw').value='';
-  enterApp();
-}
 function toggleFieldPw(id){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';}
 function openChpw(){document.getElementById('chpw-overlay').classList.add('open');document.getElementById('chpw-err').textContent='';['chpw-cur','chpw-new','chpw-con'].forEach(x=>document.getElementById(x).value='');}
 function doChangePw(){
@@ -942,10 +907,10 @@ function saveState(){
   const ind=document.getElementById('saved-indicator');
   if(ind){ind.style.display='inline-flex';clearTimeout(ind._t);ind._t=setTimeout(()=>ind.style.display='none',2500);}
 
-  // Debounced JSONBin push (admin only, only if connected)
-  if(IS_ADMIN&&_jbKey&&_jbBinId){
+  // Debounced Firebase push (admin only, only if connected)
+  if(IS_ADMIN&&_fbUrl){
     clearTimeout(_pushTimer);
-    _pushTimer=setTimeout(()=>jbPush(false),PUSH_DEBOUNCE);
+    _pushTimer=setTimeout(()=>fbPush(false),PUSH_DEBOUNCE);
   }
   // Broadcast to same-browser viewers (BroadcastChannel)
   try{if(_bc)_bc.postMessage({type:'state_update',state:S,ts:Date.now(),tid:CURRENT_T_ID});}catch(e){}
@@ -955,212 +920,133 @@ function saveState(){
 // JSONBIN SYNC
 // ══════════════════════════════════════════════════════
 
-// ── Helpers ──────────────────────────────────────────
-function jbHeaders(write=false){
-  const h={'X-Master-Key':_jbKey,'Content-Type':'application/json'};
-  if(!write)h['X-Bin-Meta']='false';  // skip metadata in GET responses
-  return h;
+// ══════════════════════════════════════════════════════
+// FIREBASE REALTIME DATABASE SYNC
+// ══════════════════════════════════════════════════════
+
+// ── Firebase URL builder ──────────────────────────────
+function fbNode(){
+  // Each tournament gets its own node: /tournaments/<tid>
+  const base=_fbUrl.replace(/\/+$/,'');
+  return base+'/tournaments/'+CURRENT_T_ID;
 }
-function jbBinKey(){return JB_BIN_STORE+'_'+CURRENT_T_ID;}
 
-// ── Init: load keys from localStorage, wire BroadcastChannel ─────────
-function initSync(){
-  // Load stored key + bin (admin flow; viewer-via-URL already has _jbBinId set)
-  if(!_jbKey)  _jbKey  = localStorage.getItem(JB_KEY_STORE)||'';
-  if(!_jbBinId)_jbBinId= localStorage.getItem(jbBinKey())||'';
-
-  // BroadcastChannel — same-browser instant sync
-  try{
-    if(_bc)try{_bc.close();}catch(e){}
-    _bc=new BroadcastChannel('thub_sync_'+CURRENT_T_ID);
-    _bc.onmessage=(ev)=>{
-      if(ev.data&&ev.data.type==='state_update'&&!IS_ADMIN&&ev.data.tid===CURRENT_T_ID){
-        S=ev.data.state;saveTState(CURRENT_T_ID,S);
-        GAMES=S.config&&S.config.gamesConfig||[];
-        refreshCurrentTab();
-        setLastSync('Updated from admin tab');
-      }
-    };
-  }catch(e){}
-
-  if(_jbBinId){
-    setSyncStatus('ok','Live sync on');
-    startPolling();
-  } else {
-    setSyncStatus('local','Local only');
+// ── Connect: validate URL + do a test write ───────────
+async function fbConnect(){
+  const url=document.getElementById('fb-url-input').value.trim();
+  const statusEl=document.getElementById('fb-connect-status');
+  const btn=document.getElementById('fb-connect-btn');
+  if(!url){statusEl.textContent='Please paste your Firebase database URL.';statusEl.style.color='#ff3b30';return;}
+  if(!url.startsWith('https://')||!url.includes('firebaseio.com')){
+    statusEl.textContent='URL must be a Firebase Realtime Database URL ending in .firebaseio.com';
+    statusEl.style.color='#ff3b30';return;
   }
-  refreshSyncModalUI();
-}
-
-// ── Connect: validate key + create or reuse bin ───────────────────────
-async function jbConnect(){
-  const key=document.getElementById('jb-key-input').value.trim();
-  const existingBin=document.getElementById('jb-bin-input').value.trim();
-  const statusEl=document.getElementById('jb-connect-status');
-  const btn=document.getElementById('jb-connect-btn');
-
-  if(!key){statusEl.textContent='Please paste your Master Key.';statusEl.style.color='#ff3b30';return;}
-  if(!key.startsWith('$2a$')&&!key.startsWith('$2b$')){statusEl.textContent='Key should start with $2a$ or $2b$ — copy the Master Key from JSONBin → API Keys.';statusEl.style.color='#ff3b30';return;}
-
-  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Connecting…';
+  btn.disabled=true;
+  btn.innerHTML='<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Connecting…';
   statusEl.textContent='';statusEl.style.color='#555';
-
+  _fbUrl=url;
   try{
-    _jbKey=key;
-    let binId=existingBin;
-
-    if(!binId){
-      // Auto-create a new bin for this tournament
-      const tName=(S.config&&S.config.name)||'Tournament';
-      const payload={state:S,tournamentId:CURRENT_T_ID,ts:Date.now()};
-      const res=await fetch(JB_API+'/b',{
-        method:'POST',
-        headers:{...jbHeaders(true),'X-Bin-Name':tName.slice(0,64),'X-Bin-Private':'false'},
-        body:JSON.stringify(payload)
-      });
-      if(res.status===401){throw new Error('Invalid Master Key — please check and try again.');}
-      if(!res.ok){const t=await res.text();throw new Error('Create bin failed: '+res.status+' '+t.slice(0,120));}
-      const data=await res.json();
-      binId=data.metadata&&data.metadata.id;
-      if(!binId)throw new Error('No bin ID in response. Check your API key permissions.');
-      _lastRemoteTs=Date.now();
-    } else {
-      // Verify the existing bin is readable
-      const res=await fetch(JB_API+'/b/'+binId+'/latest',{headers:jbHeaders(false)});
-      if(res.status===401){throw new Error('Invalid Master Key.');}
-      if(res.status===404){throw new Error('Bin ID not found. Check the ID and try again.');}
-      if(!res.ok)throw new Error('Cannot read bin: HTTP '+res.status);
+    // Test write
+    const testUrl=_fbUrl.replace(/\/+$/,'')+'/tournaments/'+CURRENT_T_ID+'/ping.json';
+    const res=await fetch(testUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:'"ok"'});
+    if(!res.ok){
+      const t=await res.text();
+      throw new Error('HTTP '+res.status+' — '+t.slice(0,120));
     }
-
-    // Persist
-    _jbBinId=binId;
-    localStorage.setItem(JB_KEY_STORE,key);
-    localStorage.setItem(jbBinKey(),binId);
-
-    statusEl.innerHTML='✓ Connected! Bin ID: <code style="font-size:.78rem;background:#f5f5f7;padding:2px 6px;border-radius:4px">'+binId+'</code>';
-    statusEl.style.color='#1a7a3a';
+    localStorage.setItem(FB_URL_STORE,url);
     setSyncStatus('ok','Live sync on');
     startPolling();
     refreshSyncModalUI();
-    showToast('JSONBin connected ✓','success');
-    if(IS_ADMIN)jbPush(false);
-
+    showToast('Firebase connected ✓','success');
+    if(IS_ADMIN)fbPush(false);
+    statusEl.innerHTML='✓ Connected to Firebase!';
+    statusEl.style.color='#1a7a3a';
   }catch(err){
-    _jbKey='';_jbBinId='';
+    _fbUrl='';
     statusEl.textContent='✗ '+err.message;
     statusEl.style.color='#ff3b30';
     setSyncStatus('error','Connection failed');
   }finally{
-    btn.disabled=false;btn.innerHTML='<i class="ti ti-plug"></i> Connect &amp; Save';
+    btn.disabled=false;
+    btn.innerHTML='<i class="ti ti-plug"></i> Connect &amp; Save';
   }
 }
 
-// ── Push state to JSONBin (admin) ─────────────────────────────────────
-async function jbPush(manual=false){
-  if(!_jbKey||!_jbBinId)return;
+// ── Push state to Firebase ─────────────────────────────
+async function fbPush(manual=false){
+  if(!_fbUrl)return;
   if(manual)setSyncStatus('syncing','Pushing…');
   try{
     const payload={state:S,tournamentId:CURRENT_T_ID,ts:Date.now()};
-    const res=await fetch(JB_API+'/b/'+_jbBinId,{
+    const res=await fetch(fbNode()+'.json',{
       method:'PUT',
-      headers:jbHeaders(true),
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify(payload)
     });
-    if(res.status===401){setSyncStatus('error','Auth error — reconnect');return;}
     if(!res.ok)throw new Error('HTTP '+res.status);
-    _lastRemoteTs=Date.now();
-    setSyncStatus('ok','Synced ✓');
-    setLastSync('Pushed at '+fmtTime());
-    if(manual)showToast('Pushed to JSONBin ✓','success');
-    setTimeout(()=>{if(_jbBinId)setSyncStatus('ok','JSONBin connected');},3000);
+    _lastRemoteTs=payload.ts;
+    setSyncStatus('ok','Live sync on');
+    setLastSync('Pushed '+fmtTime());
+    if(manual)showToast('Pushed to Firebase ✓','success');
   }catch(e){
     setSyncStatus('error','Push failed');
     if(manual)showToast('Push failed: '+e.message,'error');
+    console.warn('fbPush error',e);
   }
 }
 
-// ── Pull latest — authenticated (admin) ──────────────────────────────
-async function jbPull(manual=false){
-  if(!_jbBinId)return;
+// ── Pull latest from Firebase ──────────────────────────
+async function fbPull(manual=false){
+  if(!_fbUrl)return;
   if(manual)setSyncStatus('syncing','Pulling…');
-  // Use key if available, else fall back to public read
-  const hdrs=_jbKey?jbHeaders(false):{'X-Bin-Meta':'false'};
   try{
-    const res=await fetch(JB_API+'/b/'+_jbBinId+'/latest',{headers:hdrs});
-    if(res.status===401){setSyncStatus('error','Auth error');return;}
-    if(res.status===404){setSyncStatus('error','Bin not found');return;}
+    const res=await fetch(fbNode()+'.json');
     if(!res.ok)throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    const rec=data.record||data;
-    if(!rec||!rec.state)return;
-
+    const rec=await res.json();
+    if(!rec||!rec.state){if(manual)showToast('No data yet','info');return;}
     if(rec.ts&&rec.ts>_lastRemoteTs){
       _lastRemoteTs=rec.ts;
       if(!IS_ADMIN){
         S=rec.state;
-        saveTState(CURRENT_T_ID,S);
         GAMES=S.config&&S.config.gamesConfig||[];
+        saveTState(CURRENT_T_ID,S);
         refreshCurrentTab();
       }
       setSyncStatus('ok','Live sync on');
       setLastSync('Updated '+fmtTime());
       if(manual)showToast('Pulled latest data ✓','success');
-    } else {
-      if(manual){showToast('Already up to date','info');setSyncStatus('ok','Live sync on');}
+    }else{
+      setSyncStatus('ok','Live sync on');
+      if(manual)showToast('Already up to date','info');
     }
   }catch(e){
     setSyncStatus('error','Poll failed');
-    console.warn('jbPull error',e);
+    console.warn('fbPull error',e);
   }
 }
 
-// ── Pull public — no key, for URL-entry viewers ───────────────────────
-async function jbPullPublic(){
-  if(!_jbBinId)return;
-  try{
-    const res=await fetch(JB_API+'/b/'+_jbBinId+'/latest',{headers:{'X-Bin-Meta':'false'}});
-    if(!res.ok)return;
-    const data=await res.json();
-    const rec=data.record||data;
-    if(!rec||!rec.state)return;
-    if(rec.ts&&rec.ts>_lastRemoteTs){
-      _lastRemoteTs=rec.ts;
-      S=rec.state;
-      GAMES=S.config&&S.config.gamesConfig||[];
-      saveTState(CURRENT_T_ID,S);
-      refreshCurrentTab();
-      setSyncStatus('ok','Live sync on');
-      setLastSync('Updated '+fmtTime());
-    }
-  }catch(e){console.warn('jbPullPublic error',e);}
-}
-
-// ── Polling loop ─────────────────────────────────────────────────────
+// ── Polling loop ────────────────────────────────────────
 function startPolling(){
   stopPolling();
-  // Viewers use keyless public read; admins use authenticated read
-  const pollFn=IS_ADMIN?()=>jbPull(false):()=>jbPullPublic();
-  _pollTimer=setInterval(pollFn,POLL_INTERVAL);
-  // Immediate pull on start
-  if(!IS_ADMIN) jbPullPublic();
+  _pollTimer=setInterval(()=>fbPull(false),POLL_INTERVAL);
+  fbPull(false);
 }
 function stopPolling(){
   if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}
 }
 
-// ── Disconnect ────────────────────────────────────────────────────────
-function jbDisconnect(){
-  if(!confirm('Disconnect JSONBin? Scores will no longer sync. Local data is kept.'))return;
+// ── Disconnect ──────────────────────────────────────────
+function fbDisconnect(){
+  if(!confirm('Disconnect Firebase? Scores stop syncing. Local data is kept.'))return;
   stopPolling();
-  _jbKey='';_jbBinId='';
-  localStorage.removeItem(JB_KEY_STORE);
-  localStorage.removeItem(jbBinKey());
+  _fbUrl='';
+  localStorage.removeItem(FB_URL_STORE);
   setSyncStatus('local','Local only');
   refreshSyncModalUI();
-  showToast('JSONBin disconnected','info');
+  showToast('Firebase disconnected','info');
 }
 
-// ── UI helpers ────────────────────────────────────────────────────────
+// ── UI helpers ──────────────────────────────────────────
 function setSyncStatus(state,label){
   const dot=document.getElementById('sync-dot');
   const lbl=document.getElementById('sync-label');
@@ -1168,82 +1054,49 @@ function setSyncStatus(state,label){
   if(lbl)lbl.textContent=label;
 }
 function setLastSync(msg){
-  const el=document.getElementById('jb-last-sync');
+  const el=document.getElementById('fb-last-sync');
   if(el)el.textContent=msg;
 }
 function fmtTime(){
   return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 function refreshSyncModalUI(){
-  const connected=!!(_jbKey&&_jbBinId);
-  const form=document.getElementById('jb-connect-form');
-  const panel=document.getElementById('jb-connected-panel');
+  const connected=!!_fbUrl;
+  const form=document.getElementById('fb-connect-form');
+  const panel=document.getElementById('fb-connected-panel');
   if(form)form.style.display=connected?'none':'block';
   if(panel)panel.style.display=connected?'block':'none';
-  const binDisp=document.getElementById('jb-bin-display');
-  if(binDisp)binDisp.textContent=_jbBinId||'';
-  // Pre-fill key field
-  const keyInp=document.getElementById('jb-key-input');
-  if(keyInp&&_jbKey&&!keyInp.value)keyInp.value=_jbKey;
-  // Build & show the viewer share link
-  if(connected&&_jbBinId){
+  const disp=document.getElementById('fb-url-display');
+  if(disp)disp.textContent=_fbUrl||'';
+  const inp=document.getElementById('fb-url-input');
+  if(inp&&_fbUrl&&!inp.value)inp.value=_fbUrl;
+  // Share link
+  if(connected){
     const base=location.origin+location.pathname;
-    const shareUrl=base+'?bin='+encodeURIComponent(_jbBinId)+'&tid='+encodeURIComponent(CURRENT_T_ID);
-    const linkEl=document.getElementById('jb-share-link');
-    const linkBox=document.getElementById('jb-share-box');
-    if(linkEl) linkEl.value=shareUrl;
-    if(linkBox) linkBox.style.display='block';
-  } else {
-    const linkBox=document.getElementById('jb-share-box');
-    if(linkBox) linkBox.style.display='none';
+    const shareUrl=base+'?fburl='+encodeURIComponent(_fbUrl)+'&tid='+encodeURIComponent(CURRENT_T_ID);
+    const linkEl=document.getElementById('fb-share-link');
+    const box=document.getElementById('fb-share-box');
+    if(linkEl)linkEl.value=shareUrl;
+    if(box)box.style.display='block';
+  }else{
+    const box=document.getElementById('fb-share-box');
+    if(box)box.style.display='none';
   }
 }
-
 function openSyncModal(){
   refreshSyncModalUI();
-  const statusEl=document.getElementById('jb-connect-status');
-  if(statusEl)statusEl.textContent='';
+  const s=document.getElementById('fb-connect-status');
+  if(s)s.textContent='';
   document.getElementById('sync-modal').classList.add('open');
 }
-
 function copyShareLink(){
-  const inp=document.getElementById('jb-share-link');
+  const inp=document.getElementById('fb-share-link');
   if(!inp)return;
   try{
-    navigator.clipboard.writeText(inp.value).then(()=>showToast('Link copied! Share it with viewers 🎉','success'));
-  }catch(e){
-    inp.select();document.execCommand('copy');
-    showToast('Link copied!','success');
-  }
+    navigator.clipboard.writeText(inp.value).then(()=>showToast('Link copied! Share with viewers 🎉','success'));
+  }catch(e){inp.select();document.execCommand('copy');showToast('Link copied!','success');}
 }
 
-function exportJSON(){
-  const blob=new Blob([JSON.stringify({state:S,tournamentId:CURRENT_T_ID,exported:new Date().toISOString()},null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  const safeName=(S.config.name||'tournament').replace(/[^a-zA-Z0-9]/g,'_');
-  a.download=safeName+'_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();
-}
-
-function importJSON(e){
-  const file=e.target.files[0];if(!file)return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    try{
-      const parsed=JSON.parse(ev.target.result);
-      const newState=parsed.state||parsed;
-      if(!newState.groups||!newState.teams){alert('Invalid backup file.');return;}
-      if(!confirm('Replace ALL current tournament data with backup?'))return;
-      S=newState;GAMES=S.config.gamesConfig||[];
-      saveState();refreshCurrentTab();showToast('Backup restored ✓','success');
-    }catch(err){alert('Failed to read file: '+err.message);}
-  };
-  r.readAsText(file);e.target.value='';
-}
-
-function clearTournamentData(){
-  if(!confirm('Clear all match data for this tournament? Team setup is kept.'))return;
-  S.matches={};S.schedule=[];
-  saveState();refreshCurrentTab();showToast('Match data cleared','error');
 }
 
 // ══════════════════════════════════════════════════════
@@ -1818,15 +1671,27 @@ function drawGame(def,tA,tB,key,gid,md){
       const isA=side===0;const stored=isA?g.pA:g.pB;
       h+=`<div class="team-side"><div class="team-side-title"><i class="ti ti-users"></i> ${esc(tm.name)}</div>`;
       def.slots.forEach(slot=>{
-        const auto=pv(tm,slot.key);const val=(stored&&stored[slot.key])||auto;
+        // Current saved selection for this slot (stored overrides default; blank means unselected)
+        const saved=(stored&&stored[slot.key]!=null)?stored[slot.key]:'';
         const isF=slot.type==='f';
-        h+=`<div class="player-row"><label>
-          <span class="badge ${isF?'bf':'bm'}">${isF?'F':'M'}</span> ${slot.key}
-        </label>`;
+        // Build the roster for this slot: all players of matching gender on this team
+        const genderKeys=isF?FEMALE_KEYS:MALE_KEYS;
+        const roster=genderKeys.map(k=>pv(tm,k)).filter(n=>n);
+        const slotLabel=`<span class="badge ${isF?'bf':'bm'}">${isF?'F':'M'}</span>`;
+        h+=`<div class="player-row"><label>${slotLabel} Slot ${slot.key}</label>`;
         if(IS_ADMIN){
-          h+=`<input type="text" value="${esc(val)}" placeholder="${esc(auto)||'Enter name'}" onchange="updP('${key}','${gid}','${isA?'A':'B'}','${slot.key}',this.value)">`;
+          // Dropdown of all players of correct gender on that team
+          const opts=`<option value="">— Select player —</option>`+
+            roster.map(n=>`<option value="${esc(n)}"${saved===n?' selected':''}>${esc(n)}</option>`).join('')+
+            // Allow typing a custom name not in roster
+            (saved&&!roster.includes(saved)?`<option value="${esc(saved)}" selected>${esc(saved)} (custom)</option>`:'');
+          h+=`<select onchange="updP('${key}','${gid}','${isA?'A':'B'}','${slot.key}',this.value)" style="margin:0">${opts}</select>`;
+          // Show a "custom name" text input below if no roster available
+          if(!roster.length){
+            h+=`<input type="text" value="${esc(saved)}" placeholder="Enter player name" style="margin:3px 0 0" onchange="updP('${key}','${gid}','${isA?'A':'B'}','${slot.key}',this.value)">`;
+          }
         } else {
-          h+=`<div style="padding:5px 8px;border:1px solid #e5e5ea;border-radius:7px;font-size:.82rem;background:#fff">${esc(val)||`<span style="color:#aaa">Not set</span>`}</div>`;
+          h+=`<div style="padding:8px 10px;border:1px solid #e5e5ea;border-radius:9px;font-size:.85rem;background:#fff;min-height:38px;display:flex;align-items:center">${esc(saved)||`<span style="color:#aeaeb2;font-size:.78rem">Not selected</span>`}</div>`;
         }
         h+=`</div>`;
       });
@@ -1856,7 +1721,16 @@ function removeSet(key,gid,idx){
   g.numSets--;if(g.sets&&g.sets[idx])g.sets.splice(idx,1);
   saveState();drawMatchup(teamById(S.matches[key].teamA),teamById(S.matches[key].teamB),key);
 }
-function updP(key,gid,side,sk,val){const g=S.matches[key].games[gid];const p='p'+side;if(!g[p])g[p]={};g[p][sk]=val;saveState();}
+function updP(key,gid,side,sk,val){
+  const g=S.matches[key].games[gid];
+  const p='p'+side;
+  if(!g[p])g[p]={};
+  // Store empty string as null so "not selected" is distinguishable
+  g[p][sk]=val===''?null:val;
+  saveState();
+  // Redraw just the players section without re-rendering the whole matchup
+  // (avoids losing focus on other inputs)
+}
 
 // ══════════════════════════════════════════════════════
 // STANDINGS TAB
@@ -2105,10 +1979,11 @@ function buildPlayerAppearances(){
       const gid='g'+def.n;const g=md.games[gid];if(!g||!def.slots)return;
       [[tA,'A',g.pA],[tB,'B',g.pB]].forEach(([tm,side,stored])=>{
         def.slots.forEach(slot=>{
-          const auto=pv(tm,slot.key);const val=(stored&&stored[slot.key])||auto;
+          // Use dropdown-selected name; fall back to roster default only if nothing selected
+          const selected=(stored&&stored[slot.key]!=null)?stored[slot.key]:pv(tm,slot.key);
           rows.push({match_key:key,phase:sched?.phase||'',date:sched?.date||'',team:tm.name,
             opponent:side==='A'?tB.name:tA.name,game_number:def.n,game_type:def.label,
-            player_slot:slot.key,player_gender:slot.type==='f'?'Female':'Male',player_name:val});
+            player_slot:slot.key,player_gender:slot.type==='f'?'Female':'Male',player_name:selected});
         });
       });
     });
@@ -2198,15 +2073,14 @@ function exportAll(){
 window.addEventListener('DOMContentLoaded',()=>{
   // ── URL-based viewer entry (?bin=BINID or ?bin=BINID&tid=TID) ──────
   const params=new URLSearchParams(location.search);
-  const urlBin=params.get('bin');
-  const urlTid=params.get('tid')||'viewer_'+urlBin;
+  const urlFb=params.get('fburl');
+  const urlTid=params.get('tid')||'viewer_url';
 
-  if(urlBin){
+  if(urlFb){
     // Viewer clicked a share link — skip landing & gate completely
     CURRENT_T_ID=urlTid;
     IS_ADMIN=false;
-    _jbBinId=urlBin;
-    _jbKey='';          // public read needs no key
+    _fbUrl=decodeURIComponent(urlFb);
     enterViewerFromUrl();
   } else {
     showLanding();
@@ -2225,14 +2099,13 @@ async function enterViewerFromUrl(){
   document.getElementById('sync-status').style.display='';
 
   try{
-    // Pull state from JSONBin — public read, no key required
-    const res=await fetch(JB_API+'/b/'+_jbBinId+'/latest',{
-      headers:{'X-Bin-Meta':'false'}
-    });
-    if(!res.ok) throw new Error('HTTP '+res.status+' — bin may be private or invalid');
-    const data=await res.json();
-    const rec=data.record||data;
-    if(!rec||!rec.state) throw new Error('No tournament data found in this bin');
+    // Pull state from Firebase — public read in test mode
+    const base=_fbUrl.replace(/\/+$/,'');
+    const nodeUrl=base+'/tournaments/'+CURRENT_T_ID+'.json';
+    const res=await fetch(nodeUrl);
+    if(!res.ok) throw new Error('HTTP '+res.status+' — check Firebase URL and database rules');
+    const rec=await res.json();
+    if(!rec||!rec.state) throw new Error('No tournament data found. Admin must push scores first.');
 
     S=rec.state;
     CURRENT_T_ID=rec.tournamentId||CURRENT_T_ID;
@@ -2249,8 +2122,8 @@ async function enterViewerFromUrl(){
       saveTList(list);
     }
 
-    // Also save the bin ID keyed to this tournament
-    localStorage.setItem(JB_BIN_STORE+'_'+CURRENT_T_ID,_jbBinId);
+    // Save Firebase URL for future use
+    localStorage.setItem(FB_URL_STORE,_fbUrl);
 
     _finishEnterViewer();
   } catch(err){
@@ -2289,10 +2162,10 @@ function _finishEnterViewer(){
   setSyncStatus('ok','Live sync on');
   switchTab('schedule');
 
-  // Start polling — no key needed for public bins
+  // Start polling Firebase — no auth needed in test mode
   stopPolling();
-  _pollTimer=setInterval(()=>jbPullPublic(),POLL_INTERVAL);
-  jbPullPublic();          // immediate refresh
+  _pollTimer=setInterval(()=>fbPull(false),POLL_INTERVAL);
+  fbPull(false);   // immediate refresh
 }
 </script>
 </body>
