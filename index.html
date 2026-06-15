@@ -818,15 +818,14 @@ function gateSubmit(){
 }
 
 function enterApp(){
-  // Load state — fall back to JSONBin pull if not in localStorage
+  // Load state — fall back to Firebase pull if not in localStorage
   let state=getTState(CURRENT_T_ID);
   if(!state&&_fbUrl){
-    // Will async-load then re-enter
     enterViewerFromUrl();
     return;
   }
   if(!state){showToast('Tournament data not found','error');backToLanding();return;}
-  S=state;
+  S=safeState(state);
   // Build GAMES from config
   GAMES=S.config.gamesConfig||[];
   MALE_KEYS=[];FEMALE_KEYS=[];
@@ -877,9 +876,6 @@ function doLogout(){
   openTournament(CURRENT_T_ID);
 }
 function toggleGatePw(){const i=document.getElementById('gate-pw');const icon=document.getElementById('gate-eye-icon');i.type=i.type==='password'?'text':'password';icon.className=i.type==='password'?'ti ti-eye':'ti ti-eye-off';}
-function showAdminGate(){const vs=document.getElementById('gate-viewer-section');const as=document.getElementById('gate-admin-section');if(vs)vs.style.display='none';if(as)as.style.display='block';const pw=document.getElementById('gate-pw');const err=document.getElementById('gate-err');if(pw){pw.value='';setTimeout(()=>pw.focus(),50);}if(err)err.textContent='';}
-function hideAdminGate(){const vs=document.getElementById('gate-viewer-section');const as=document.getElementById('gate-admin-section');if(as)as.style.display='none';if(vs)vs.style.display='block';const err=document.getElementById('gate-err');if(err)err.textContent='';}
-function gateAdminSubmit(){const state=getTState(CURRENT_T_ID);const pw=document.getElementById('gate-pw');const err=document.getElementById('gate-err');const correctPw=(state&&state.config&&state.config.pw)||ADMIN_PW_DEFAULT;if(!pw||pw.value!==correctPw){if(pw){pw.classList.add('err');setTimeout(()=>pw.classList.remove('err'),500);}if(err)err.textContent='Incorrect password.';return;}IS_ADMIN=true;document.getElementById('gate').classList.add('gone');pw.value='';enterApp();}
 function toggleFieldPw(id){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';}
 function openChpw(){document.getElementById('chpw-overlay').classList.add('open');document.getElementById('chpw-err').textContent='';['chpw-cur','chpw-new','chpw-con'].forEach(x=>document.getElementById(x).value='');}
 function doChangePw(){
@@ -920,7 +916,7 @@ function saveState(){
 }
 
 // ══════════════════════════════════════════════════════
-// JSONBIN SYNC
+// FIREBASE SYNC
 // ══════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════
@@ -981,11 +977,13 @@ async function fbPush(manual=false){
   if(manual)setSyncStatus('syncing','Pushing…');
   try{
     const payload={state:S,tournamentId:CURRENT_T_ID,ts:Date.now()};
-    const res=await fetch(fbNode()+'.json',{
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    });
+    const base=_fbUrl.replace(/\/+$/,'');
+    // Write to both the tournament-specific node AND a /latest shortcut
+    const [res1,res2]=await Promise.all([
+      fetch(fbNode()+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
+      fetch(base+'/latest.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    ]);
+    const res=res1;
     if(!res.ok)throw new Error('HTTP '+res.status);
     _lastRemoteTs=payload.ts;
     setSyncStatus('ok','Live sync on');
@@ -1010,8 +1008,11 @@ async function fbPull(manual=false){
     if(rec.ts&&rec.ts>_lastRemoteTs){
       _lastRemoteTs=rec.ts;
       if(!IS_ADMIN){
-        S=rec.state;
-        GAMES=S.config&&S.config.gamesConfig||[];
+        S=safeState(rec.state);
+        GAMES=S.config.gamesConfig||[];
+        MALE_KEYS=[];FEMALE_KEYS=[];
+        for(let i=1;i<=(S.config.female||0);i++) FEMALE_KEYS.push('f'+i);
+        for(let i=1;i<=(S.config.male||0);i++) MALE_KEYS.push('m'+i);
         saveTState(CURRENT_T_ID,S);
         refreshCurrentTab();
       }
@@ -1103,6 +1104,29 @@ function copyShareLink(){
 // ══════════════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════════════
+
+// Ensure a state object from Firebase has all required keys
+function safeState(raw){
+  if(!raw||typeof raw!=='object') raw={};
+  const cfg=raw.config||{};
+  return {
+    config:{
+      name:      cfg.name      ||'Tournament',
+      sport:     cfg.sport     ||'',
+      emoji:     cfg.emoji     ||'🏆',
+      female:    Number(cfg.female)||0,
+      male:      Number(cfg.male)  ||0,
+      pw:        cfg.pw        ||'admin',
+      gamesConfig: Array.isArray(cfg.gamesConfig)?cfg.gamesConfig:[],
+      createdAt: cfg.createdAt ||Date.now(),
+    },
+    groups:  Array.isArray(raw.groups)       ?raw.groups :[],
+    teams:   raw.teams&&typeof raw.teams==='object'?raw.teams:{},
+    matches: raw.matches&&typeof raw.matches==='object'?raw.matches:{},
+    schedule:Array.isArray(raw.schedule)     ?raw.schedule:[],
+  };
+}
+
 function uid(){return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
 function allTeams(){let r=[];for(let g in S.teams)r=r.concat(S.teams[g]);return r}
 function teamById(id){return allTeams().find(t=>t.id===id)}
@@ -1187,7 +1211,7 @@ function calcSum(key,tA,tB){
     const w=gameWin(def,md.games['g'+def.n],tA,tB);
     if(w===tA.id)gA++;else if(w===tB.id)gB++;
   });
-  const total=GAMES.length;
+  const total=(GAMES&&GAMES.length)||1;
   const needed=Math.floor(total/2)+1; // simple majority
   // match winner: first to win majority of games OR all special games scored
   const done=(gA>=needed||gB>=needed);
@@ -1220,7 +1244,7 @@ function getGroupToppers(){
 // SETUP TAB
 // ══════════════════════════════════════════════════════
 function renderSetup(){
-  const allSlotKeys=[...FEMALE_KEYS,...MALE_KEYS];
+  const allSlotKeys=[...(FEMALE_KEYS||[]),...(MALE_KEYS||[])];
   let h='';
 
   // Tournament config card (admin only)
@@ -1738,11 +1762,11 @@ function updP(key,gid,side,sk,val){
 // ══════════════════════════════════════════════════════
 function renderStandingsTab(){
   const el=document.getElementById('tab-standings');
-  if(!S.groups.length){el.innerHTML='<div style="padding:1rem;color:#aaa">No groups set up yet.</div>';return;}
+  if(!S.groups||!S.groups.length){el.innerHTML='<div style="padding:1rem;color:#8e8e93;text-align:center">No groups set up yet.</div>';return;}
   let h=`<div style="display:flex;gap:5px;margin-bottom:1rem;flex-wrap:wrap">`;
   S.groups.forEach((g,i)=>h+=`<button class="group-tab ${i===0?'active':''}" onclick="showGS('${g.id}',this)">${esc(g.name)}</button>`);
   h+=`</div><div id="gs-body"></div>`;
-  el.innerHTML=h;showGS(S.groups[0].id,el.querySelector('.group-tab'));
+  el.innerHTML=h;if(S.groups&&S.groups[0])showGS(S.groups[0].id,el.querySelector('.group-tab'));
 }
 
 function showGS(gid,btn){
@@ -2089,50 +2113,91 @@ window.addEventListener('DOMContentLoaded',()=>{
 });
 
 async function enterViewerFromUrl(){
-  // Show a loading screen while we fetch the tournament state
+  // Show loading screen
   document.getElementById('landing').style.display='none';
   document.getElementById('gate').classList.add('gone');
   document.getElementById('app').classList.add('visible');
   document.getElementById('app-tname').textContent='Loading…';
   document.getElementById('mode-banner').innerHTML=
-    `<div class="viewer-banner-bar"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Loading live tournament data…</div>`;
+    `<div class="viewer-banner-bar"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Connecting to live tournament…</div>`;
   document.getElementById('tabs-bar').style.visibility='hidden';
   document.getElementById('sync-status').style.display='';
 
   try{
-    // Pull state from Firebase — public read in test mode
     const base=_fbUrl.replace(/\/+$/,'');
-    const nodeUrl=base+'/tournaments/'+CURRENT_T_ID+'.json';
-    const res=await fetch(nodeUrl);
-    if(!res.ok) throw new Error('HTTP '+res.status+' — check Firebase URL and database rules');
-    const rec=await res.json();
-    if(!rec||!rec.state) throw new Error('No tournament data found. Admin must push scores first.');
+    let rec=null;
 
-    S=rec.state;
+    // ── Strategy 1: try exact tournament ID ───────────────────────────
+    if(CURRENT_T_ID&&!CURRENT_T_ID.startsWith('viewer_')){
+      const r=await fetch(base+'/tournaments/'+CURRENT_T_ID+'.json');
+      if(r.ok){const d=await r.json();if(d&&d.state)rec=d;}
+    }
+
+    // ── Strategy 2: scan all tournaments node for any valid record ────
+    if(!rec){
+      const r=await fetch(base+'/tournaments.json');
+      if(r.ok){
+        const all=await r.json();
+        if(all&&typeof all==='object'){
+          // Pick the most recently pushed tournament
+          const entries=Object.entries(all)
+            .filter(([,v])=>v&&v.state)
+            .sort(([,a],[,b])=>(b.ts||0)-(a.ts||0));
+          if(entries.length){
+            const [tid,data]=entries[0];
+            CURRENT_T_ID=tid;
+            rec=data;
+          }
+        }
+      }
+    }
+
+    // ── Strategy 3: try /latest shortcut node ─────────────────────────
+    if(!rec){
+      const r=await fetch(base+'/latest.json');
+      if(r.ok){const d=await r.json();if(d&&d.state)rec=d;}
+    }
+
+    if(!rec||!rec.state){
+      throw new Error('No tournament data found in Firebase. The admin needs to connect sync and push scores first.');
+    }
+
+    // ── Load the state ─────────────────────────────────────────────────
+    S=safeState(rec.state);
     CURRENT_T_ID=rec.tournamentId||CURRENT_T_ID;
     _lastRemoteTs=rec.ts||0;
 
-    // Cache locally so refreshes are instant
     saveTState(CURRENT_T_ID,S);
+    localStorage.setItem(FB_URL_STORE,_fbUrl);
 
-    // Merge into local tournament list if not already there
     const list=getTList();
     if(!list.find(t=>t.id===CURRENT_T_ID)){
-      list.unshift({id:CURRENT_T_ID,name:S.config.name,sport:S.config.sport||'',
-        emoji:S.config.emoji||'🏆',lastSaved:rec.ts||Date.now()});
+      list.unshift({id:CURRENT_T_ID,
+        name:(S.config&&S.config.name)||'Tournament',
+        sport:(S.config&&S.config.sport)||'',
+        emoji:(S.config&&S.config.emoji)||'🏆',
+        lastSaved:rec.ts||Date.now()});
       saveTList(list);
     }
 
-    // Save Firebase URL for future use
-    localStorage.setItem(FB_URL_STORE,_fbUrl);
-
     _finishEnterViewer();
-  } catch(err){
+
+  }catch(err){
+    console.error('enterViewerFromUrl error:',err);
     document.getElementById('mode-banner').innerHTML=
-      `<div style="background:#fff0f0;border-bottom:1px solid #fecaca;padding:.75rem 1rem;color:#c00;font-size:13px;display:flex;align-items:center;gap:8px">
-        <i class="ti ti-alert-circle"></i>
-        <span><strong>Could not load tournament:</strong> ${err.message}.
-        <br><span style="font-size:12px">Make sure the bin is set to <strong>public</strong> in JSONBin, then refresh.</span></span>
+      `<div style="background:#fff0f0;border-bottom:1px solid #fecaca;padding:12px 16px;color:#c00;font-size:13px;display:flex;align-items:flex-start;gap:8px">
+        <i class="ti ti-alert-circle" style="flex-shrink:0;margin-top:1px"></i>
+        <div>
+          <strong>Could not load tournament data.</strong><br>
+          <span style="font-size:12px;opacity:.85">${err.message}</span><br>
+          <div style="margin-top:8px;font-size:12px;background:#fff0f0;border-radius:6px">
+            <strong>Checklist:</strong><br>
+            1. Admin must open the app, connect Firebase (☁ icon), and tap <strong>Push now</strong><br>
+            2. In Firebase Console → Realtime Database → Rules, set <code style="background:#ffe5e5;padding:1px 4px;border-radius:3px">".read": true</code><br>
+            3. Make sure the database URL is <code style="background:#ffe5e5;padding:1px 4px;border-radius:3px">https://…firebaseio.com</code> (no trailing slash)
+          </div>
+          <button onclick="location.reload()" style="margin-top:8px;padding:6px 14px;background:#0a84ff;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600">Retry</button>
+        </div>
       </div>`;
     document.getElementById('tabs-bar').style.visibility='visible';
     document.getElementById('app-tname').textContent='Error';
@@ -2141,12 +2206,16 @@ async function enterViewerFromUrl(){
 }
 
 function _finishEnterViewer(){
-  GAMES=S.config.gamesConfig||[];
+  const cfg=S.config||{};
+  GAMES=(cfg.gamesConfig)||[];
   MALE_KEYS=[];FEMALE_KEYS=[];
-  for(let i=1;i<=S.config.male;i++) MALE_KEYS.push('m'+i);
-  for(let i=1;i<=S.config.female;i++) FEMALE_KEYS.push('f'+i);
+  const maleCount=Number(cfg.male)||0;
+  const femaleCount=Number(cfg.female)||0;
+  for(let i=1;i<=femaleCount;i++) FEMALE_KEYS.push('f'+i);
+  for(let i=1;i<=maleCount;i++) MALE_KEYS.push('m'+i);
 
-  document.getElementById('app-tname').textContent=S.config.name;
+  const tName=cfg.name||'Tournament';
+  document.getElementById('app-tname').textContent=tName;
   const badge=document.getElementById('app-role-badge');
   badge.textContent='Viewer';badge.className='app-role-badge rb-viewer';
   document.getElementById('viewer-login-btn').style.display='';
@@ -2156,8 +2225,8 @@ function _finishEnterViewer(){
   document.getElementById('mode-banner').innerHTML=
     `<div class="viewer-banner-bar">
       <i class="ti ti-eye"></i>
-      <strong>Live viewer</strong> — Scores refresh automatically every 6 s
-      <span style="margin-left:auto;font-size:12px;opacity:.8">${esc(S.config.name)}</span>
+      <strong>Live viewer</strong> — Scores refresh every 7 s
+      <span style="margin-left:auto;font-size:12px;opacity:.8">${esc(tName)}</span>
     </div>`;
 
   setSyncStatus('ok','Live sync on');
