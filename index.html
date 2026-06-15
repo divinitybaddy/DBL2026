@@ -817,6 +817,19 @@ function gateSubmit(){
   enterApp();
 }
 
+function sanitiseS(){
+  if(!S) S={};
+  if(!S.config) S.config={name:'Tournament',sport:'',emoji:'🏆',female:0,male:0,pw:'admin',gamesConfig:[],createdAt:Date.now()};
+  if(!Array.isArray(S.config.gamesConfig)) S.config.gamesConfig=[];
+  if(!Array.isArray(S.groups)) S.groups=[];
+  if(!S.teams||typeof S.teams!=='object') S.teams={};
+  if(!S.matches||typeof S.matches!=='object') S.matches={};
+  if(!Array.isArray(S.schedule)) S.schedule=[];
+  GAMES=S.config.gamesConfig||[];
+  MALE_KEYS=[];FEMALE_KEYS=[];
+  for(let i=1;i<=(S.config.male||0);i++) MALE_KEYS.push('m'+i);
+  for(let i=1;i<=(S.config.female||0);i++) FEMALE_KEYS.push('f'+i);
+}
 function enterApp(){
   // Load state — fall back to JSONBin pull if not in localStorage
   let state=getTState(CURRENT_T_ID);
@@ -1011,7 +1024,7 @@ async function fbPull(manual=false){
       _lastRemoteTs=rec.ts;
       if(!IS_ADMIN){
         S=rec.state;
-        GAMES=S.config&&S.config.gamesConfig||[];
+        sanitiseS();
         saveTState(CURRENT_T_ID,S);
         refreshCurrentTab();
       }
@@ -2106,10 +2119,10 @@ async function enterViewerFromUrl(){
     const res=await fetch(nodeUrl);
     if(!res.ok) throw new Error('HTTP '+res.status+' — check Firebase URL and database rules');
     const rec=await res.json();
-    if(!rec||!rec.state) throw new Error('No tournament data found — admin must save and push scores from the app first.');
-    if(!rec.state.config) throw new Error('Tournament config is missing — admin must re-save the tournament from the app.');
+    if(!rec||!rec.state) throw new Error('No tournament data found. Admin must push scores first.');
 
     S=rec.state;
+    sanitiseS();
     CURRENT_T_ID=rec.tournamentId||CURRENT_T_ID;
     _lastRemoteTs=rec.ts||0;
 
@@ -2142,11 +2155,7 @@ async function enterViewerFromUrl(){
 }
 
 function _finishEnterViewer(){
-  const cfg=(S&&S.config)||{};
-  GAMES=cfg.gamesConfig||[];
-  MALE_KEYS=[];FEMALE_KEYS=[];
-  for(let i=1;i<=(cfg.male||0);i++) MALE_KEYS.push('m'+i);
-  for(let i=1;i<=(cfg.female||0);i++) FEMALE_KEYS.push('f'+i);
+  sanitiseS(); // ensures GAMES, MALE_KEYS, FEMALE_KEYS, groups, matches, schedule are safe
 
   document.getElementById('app-tname').textContent=S.config.name;
   const badge=document.getElementById('app-role-badge');
