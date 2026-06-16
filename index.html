@@ -819,38 +819,39 @@ function gateSubmit(){
 
 function sanitiseS(){
   if(!S||typeof S!=='object') S={};
-  // Config
   if(!S.config||typeof S.config!=='object') S.config={};
-  const cfg=S.config;
-  cfg.name      = cfg.name      ||'Tournament';
-  cfg.sport     = cfg.sport     ||'';
-  cfg.emoji     = cfg.emoji     ||'🏆';
-  cfg.female    = Number(cfg.female)||0;
-  cfg.male      = Number(cfg.male)  ||0;
-  cfg.pw        = cfg.pw        ||ADMIN_PW_DEFAULT;
-  cfg.gamesConfig = Array.isArray(cfg.gamesConfig)?cfg.gamesConfig:[];
-  // Groups, teams, matches, schedule
-  if(!Array.isArray(S.groups))  S.groups=[];
-  if(!S.teams||typeof S.teams!=='object') S.teams={};
+  if(!S.config.name)   S.config.name='Tournament';
+  if(!S.config.emoji)  S.config.emoji='🏆';
+  if(!S.config.sport)  S.config.sport='';
+  if(!S.config.pw)     S.config.pw='admin';
+  if(typeof S.config.female!=='number') S.config.female=0;
+  if(typeof S.config.male!=='number')   S.config.male=0;
+  if(!Array.isArray(S.config.gamesConfig)) S.config.gamesConfig=[];
+  if(!Array.isArray(S.groups))             S.groups=[];
+  if(!S.teams||typeof S.teams!=='object')  S.teams={};
   if(!S.matches||typeof S.matches!=='object') S.matches={};
   if(!Array.isArray(S.schedule)) S.schedule=[];
-  // Ensure every group has a teams array
-  S.groups.forEach(g=>{ if(!S.teams[g.id]) S.teams[g.id]=[]; });
-  // Rebuild GAMES and gender key arrays from config
-  GAMES = cfg.gamesConfig;
+  S.groups.forEach(g=>{if(!Array.isArray(S.teams[g.id])) S.teams[g.id]=[];});
+  GAMES=S.config.gamesConfig;
   MALE_KEYS=[];FEMALE_KEYS=[];
-  for(let i=1;i<=cfg.female;i++) FEMALE_KEYS.push('f'+i);
-  for(let i=1;i<=cfg.male;i++)   MALE_KEYS.push('m'+i);
+  for(let i=1;i<=S.config.male;i++)   MALE_KEYS.push('m'+i);
+  for(let i=1;i<=S.config.female;i++) FEMALE_KEYS.push('f'+i);
 }
 function enterApp(){
+  // Load state — fall back to JSONBin pull if not in localStorage
   let state=getTState(CURRENT_T_ID);
   if(!state&&_fbUrl){
+    // Will async-load then re-enter
     enterViewerFromUrl();
     return;
   }
   if(!state){showToast('Tournament data not found','error');backToLanding();return;}
   S=state;
-  sanitiseS(); // populate GAMES, MALE_KEYS, FEMALE_KEYS and guard all arrays
+  // Build GAMES from config
+  GAMES=S.config.gamesConfig||[];
+  MALE_KEYS=[];FEMALE_KEYS=[];
+  for(let i=1;i<=S.config.male;i++)MALE_KEYS.push('m'+i);
+  for(let i=1;i<=S.config.female;i++)FEMALE_KEYS.push('f'+i);
 
   // Update UI
   document.getElementById('app-tname').textContent=S.config.name;
@@ -953,7 +954,7 @@ function fbNode(){
   return base+'/tournaments/'+CURRENT_T_ID;
 }
 
-// ── Connect: validate URL + do a test READ ────────────
+// ── Connect: validate URL + do a test write ───────────
 async function fbConnect(){
   const url=document.getElementById('fb-url-input').value.trim();
   const statusEl=document.getElementById('fb-connect-status');
@@ -968,14 +969,13 @@ async function fbConnect(){
   statusEl.textContent='';statusEl.style.color='#555';
   _fbUrl=url;
   try{
-    // Test READ (not write) — works with both open rules and auth-required write rules
-    const testUrl=_fbUrl.replace(/\/+$/,'')+'/.json?shallow=true';
-    const res=await fetch(testUrl);
-    // 401/403 means wrong URL or no read access — anything else we treat as reachable
-    if(res.status===401||res.status===403){
-      throw new Error('Firebase denied access ('+res.status+'). Set database rules ".read": true, or check the URL.');
+    // Test read (avoids 401 when write requires auth)
+    const testUrl=_fbUrl.replace(/\/+$/,'')+'/tournaments/'+CURRENT_T_ID+'.json';
+    const res=await fetch(testUrl,{method:'GET'});
+    if(!res.ok){
+      const t=await res.text();
+      throw new Error('HTTP '+res.status+' — '+t.slice(0,120));
     }
-    // 200 or 404 (empty db) both mean the URL is valid and readable
     localStorage.setItem(FB_URL_STORE,url);
     setSyncStatus('ok','Live sync on');
     startPolling();
@@ -1001,11 +1001,11 @@ async function fbPush(manual=false){
   if(manual)setSyncStatus('syncing','Pushing…');
   try{
     const payload={state:S,tournamentId:CURRENT_T_ID,ts:Date.now()};
-    const base=_fbUrl.replace(/\/+$/,'');
-    const [res]=await Promise.all([
-      fetch(fbNode()+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
-      fetch(base+'/latest.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-    ]);
+    const res=await fetch(fbNode()+'.json',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
     if(!res.ok)throw new Error('HTTP '+res.status);
     _lastRemoteTs=payload.ts;
     setSyncStatus('ok','Live sync on');
@@ -1030,7 +1030,7 @@ async function fbPull(manual=false){
     if(rec.ts&&rec.ts>_lastRemoteTs){
       _lastRemoteTs=rec.ts;
       if(!IS_ADMIN){
-        S=rec.state||{};
+        S=rec.state;
         sanitiseS();
         saveTState(CURRENT_T_ID,S);
         refreshCurrentTab();
@@ -1201,19 +1201,19 @@ function gameWin(def,g,tA,tB){
 
 function calcSum(key,tA,tB){
   const md=S.matches[key];
-  if(!md||!tA||!tB)return{gA:0,gB:0,pA:0,pB:0,done:false,winnerId:null,leader:''};
-  let gA=0,gB=0;
+  if(!md||!tA||!tB)return{gA:0,gB:0,pA:0,pB:0,swA:0,slA:0,swB:0,slB:0,done:false,winnerId:null,leader:''};
+  let gA=0,gB=0,swA=0,swB=0;
   GAMES.forEach(def=>{
     const w=gameWin(def,md.games['g'+def.n],tA,tB);
     if(w===tA.id)gA++;else if(w===tB.id)gB++;
+    if(!def.special){const g=md.games['g'+def.n];const sv=setsWon(g?g.sets:[]);swA+=sv.a;swB+=sv.b;}
   });
   const total=GAMES.length;
-  const needed=Math.floor(total/2)+1; // simple majority
-  // match winner: first to win majority of games OR all special games scored
+  const needed=Math.floor(total/2)+1;
   const done=(gA>=needed||gB>=needed);
   const winnerId=gA>=needed?tA.id:gB>=needed?tB.id:null;
   const leader=gA>gB?tA.name:gB>gA?tB.name:'Tied';
-  return{gA,gB,pA:gA>=needed?2:0,pB:gB>=needed?2:0,done,winnerId,leader};
+  return{gA,gB,pA:gA>=needed?2:0,pB:gB>=needed?2:0,swA,slA:swB,swB,slB:swA,done,winnerId,leader};
 }
 
 function getGroupToppers(){
@@ -1221,16 +1221,17 @@ function getGroupToppers(){
   S.groups.forEach(g=>{
     const teams=S.teams[g.id]||[];let rows=[];
     teams.forEach(tm=>{
-      let pts=0,gw=0,gl=0;
+      let pts=0,gw=0,gl=0,sw=0,sl=0;
       teams.forEach(opp=>{
         if(opp.id===tm.id)return;const key=mkey(tm.id,opp.id);const md=S.matches[key];if(!md)return;
         const tA=teamById(md.teamA),tB=teamById(md.teamB);const sum=calcSum(key,tA,tB);
         const mg=tm.id===md.teamA?sum.gA:sum.gB,og=tm.id===md.teamA?sum.gB:sum.gA;
-        if(mg>0||og>0){if(mg>=Math.floor(GAMES.length/2)+1)pts+=2;gw+=mg;gl+=og;}
+        const msw=tm.id===md.teamA?sum.swA:sum.swB,msl=tm.id===md.teamA?sum.slA:sum.slB;
+        if(mg>0||og>0){if(mg>=Math.floor(GAMES.length/2)+1)pts+=2;gw+=mg;gl+=og;sw+=msw;sl+=msl;}
       });
-      rows.push({tm,pts,gw,gl,diff:gw-gl});
+      rows.push({tm,pts,gw,gl,diff:gw-gl,sw,sl,sdiff:sw-sl});
     });
-    rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.gw-a.gw));
+    rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.sdiff-a.sdiff)||(b.gw-a.gw));
     toppers[g.id]=rows;
   });
   return toppers;
@@ -1695,27 +1696,21 @@ function drawGame(def,tA,tB,key,gid,md){
         // Current saved selection for this slot (stored overrides default; blank means unselected)
         const saved=(stored&&stored[slot.key]!=null)?stored[slot.key]:'';
         const isF=slot.type==='f';
-        // Build roster directly from tm.players keys by gender prefix
-        // This works even if FEMALE_KEYS/MALE_KEYS are not yet populated
-        const prefix=isF?'f':'m';
-        const players=tm.players&&typeof tm.players==='object'?tm.players:{};
-        const roster=Object.entries(players)
-          .filter(([k,v])=>k.startsWith(prefix)&&v&&v.trim())
-          .sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true}))
-          .map(([,v])=>v.trim());
+        // Build the roster for this slot: all players of matching gender on this team
+        const _pl=tm.players||{};
+        const roster=Object.entries(_pl).filter(([k,v])=>v&&v.trim()&&(isF?k.startsWith('f'):k.startsWith('m'))).sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true})).map(([,v])=>v.trim());
+        const allPl=Object.values(_pl).filter(v=>v&&v.trim()).map(v=>v.trim());
+        const rosterFinal=roster.length?roster:allPl;
         const slotLabel=`<span class="badge ${isF?'bf':'bm'}">${isF?'F':'M'}</span>`;
-        h+=`<div class="player-row"><label>${slotLabel} Slot ${slot.key}</label>`;
+        h+=`<div class="player-row"><label>${slotLabel} ${esc(slot.key.toUpperCase())} — ${isF?'Female':'Male'} Player</label>`;
         if(IS_ADMIN){
-          // Dropdown of all players of correct gender on that team
-          const opts=`<option value="">— Select player —</option>`+
-            roster.map(n=>`<option value="${esc(n)}"${saved===n?' selected':''}>${esc(n)}</option>`).join('')+
-            // Allow typing a custom name not in roster
-            (saved&&!roster.includes(saved)?`<option value="${esc(saved)}" selected>${esc(saved)} (custom)</option>`:'');
-          h+=`<select onchange="updP('${key}','${gid}','${isA?'A':'B'}','${slot.key}',this.value)" style="margin:0">${opts}</select>`;
-          // Show a "custom name" text input below if no roster available
-          if(!roster.length){
-            h+=`<input type="text" value="${esc(saved)}" placeholder="Enter player name" style="margin:3px 0 0" onchange="updP('${key}','${gid}','${isA?'A':'B'}','${slot.key}',this.value)">`;
-          }
+          let _sel=`<select style="width:100%;padding:7px 10px;border:1.5px solid #d1d1d6;border-radius:8px;font-size:.84rem;background:#fff;color:#1c1c1e;cursor:pointer;font-family:inherit" onchange="updP('${key}','${gid}','${isA?'A':'B'}','${slot.key}',this.value)">`;
+          _sel+=`<option value="">— Select ${isF?'female':'male'} player —</option>`;
+          rosterFinal.forEach(n=>{_sel+=`<option value="${esc(n)}"${saved===n?' selected':''}>${esc(n)}</option>`;});
+          if(saved&&!rosterFinal.includes(saved)) _sel+=`<option value="${esc(saved)}" selected>${esc(saved)}</option>`;
+          _sel+='</select>';
+          if(!rosterFinal.length) _sel+=`<div style="font-size:.75rem;color:#ff9500;margin-top:3px"><i class="ti ti-alert-triangle"></i> No players in roster — add players in Setup first</div>`;
+          h+=_sel;
         } else {
           h+=`<div style="padding:8px 10px;border:1px solid #e5e5ea;border-radius:9px;font-size:.85rem;background:#fff;min-height:38px;display:flex;align-items:center">${esc(saved)||`<span style="color:#aeaeb2;font-size:.78rem">Not selected</span>`}</div>`;
         }
@@ -1777,27 +1772,39 @@ function showGS(gid,btn){
   const needed=Math.floor(GAMES.length/2)+1;
   let rows=[];
   teams.forEach(tm=>{
-    let mp=0,mw=0,ml=0,pts=0,gw=0,gl=0;
+    let mp=0,mw=0,ml=0,pts=0,gw=0,gl=0,sw=0,sl=0;
     teams.forEach(opp=>{
       if(opp.id===tm.id)return;const key=mkey(tm.id,opp.id);const md=S.matches[key];if(!md)return;
       const tA=teamById(md.teamA),tB=teamById(md.teamB);const sum=calcSum(key,tA,tB);
       const mg=tm.id===md.teamA?sum.gA:sum.gB,og=tm.id===md.teamA?sum.gB:sum.gA;
-      if(mg>0||og>0){mp++;if(mg>=needed){mw++;pts+=2;}else if(og>=needed)ml++;gw+=mg;gl+=og;}
+      const msw=tm.id===md.teamA?sum.swA:sum.swB,msl=tm.id===md.teamA?sum.slA:sum.slB;
+      if(mg>0||og>0){mp++;if(mg>=needed){mw++;pts+=2;}else if(og>=needed)ml++;gw+=mg;gl+=og;sw+=msw;sl+=msl;}
     });
-    rows.push({tm,mp,mw,ml,pts,gw,gl,diff:gw-gl});
+    rows.push({tm,mp,mw,ml,pts,gw,gl,diff:gw-gl,sw,sl,sdiff:sw-sl});
   });
-  rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.gw-a.gw));
-  let h=`<div class="card"><table>
-  <thead><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>L</th><th>GW</th><th>GL</th><th>+/-</th><th>Pts</th></tr></thead><tbody>`;
+  rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.sdiff-a.sdiff)||(b.gw-a.gw));
+  let h=`<div class="card" style="overflow-x:auto"><table style="min-width:620px">
+  <thead><tr>
+    <th>#</th><th>Team</th>
+    <th title="Matches played">MP</th><th title="Matches won">W</th><th title="Matches lost">L</th>
+    <th title="Games won">GW</th><th title="Games lost">GL</th><th title="Game difference">G+/-</th>
+    <th title="Sets won">SW</th><th title="Sets lost">SL</th><th title="Set difference">S+/-</th>
+    <th>Pts</th>
+  </tr></thead><tbody>`;
   rows.forEach((r,i)=>{
-    const q=i<2;
+    const q=i<2;const sdiff=r.sdiff||0;
     h+=`<tr><td style="font-weight:700;color:#555">${i+1}</td>
     <td style="font-weight:700">${esc(r.tm.name)} ${q?`<span class="badge bp">Q</span>`:''}</td>
     <td>${r.mp}</td><td>${r.mw}</td><td>${r.ml}</td><td>${r.gw}</td><td>${r.gl}</td>
     <td style="font-family:ui-monospace,monospace;color:${r.diff>0?'#1a7a3a':r.diff<0?'#ff3b30':'#555'}">${r.diff>0?'+':''}${r.diff}</td>
+    <td>${r.sw||0}</td><td>${r.sl||0}</td>
+    <td style="font-family:ui-monospace,monospace;color:${sdiff>0?'#1a7a3a':sdiff<0?'#ff3b30':'#555'}">${sdiff>0?'+':''}${sdiff}</td>
     <td><span class="badge bm" style="font-size:.875rem;font-weight:800;font-family:ui-monospace,monospace">${r.pts}</span></td></tr>`;
   });
-  h+=`</tbody></table><div style="font-size:.72rem;color:#555;margin-top:6px">Q = qualifies for knockout. Win ${needed} of ${GAMES.length} games to win a match.</div></div>`;
+  h+=`</tbody></table><div style="font-size:.72rem;color:#555;margin-top:8px;line-height:1.9">
+  <strong>Q</strong> = qualifies for knockout &nbsp;|&nbsp; Win ${needed} of ${GAMES.length} games to win a match<br>
+  <strong>Tiebreaker:</strong> 1) Points &nbsp;→&nbsp; 2) Game diff (GW−GL) &nbsp;→&nbsp; 3) Set diff (SW−SL) &nbsp;→&nbsp; 4) Games won
+  </div></div>`;
 
   const pairs=[];
   for(let i=0;i<teams.length;i++) for(let j=i+1;j<teams.length;j++) pairs.push([teams[i],teams[j]]);
@@ -2125,65 +2132,40 @@ async function enterViewerFromUrl(){
   document.getElementById('sync-status').style.display='';
 
   try{
+    // Pull state from Firebase — public read in test mode
     const base=_fbUrl.replace(/\/+$/,'');
-    let rec=null;
-
-    // Strategy 1: exact tournament ID node
-    if(CURRENT_T_ID&&!CURRENT_T_ID.startsWith('viewer_')){
-      const r=await fetch(base+'/tournaments/'+CURRENT_T_ID+'.json');
-      if(r.ok){const d=await r.json();if(d&&d.state)rec=d;}
-    }
-    // Strategy 2: scan all tournaments, pick most recent
-    if(!rec){
-      const r=await fetch(base+'/tournaments.json');
-      if(r.ok){
-        const all=await r.json();
-        if(all&&typeof all==='object'){
-          const entries=Object.entries(all)
-            .filter(([,v])=>v&&v.state)
-            .sort(([,a],[,b])=>(b.ts||0)-(a.ts||0));
-          if(entries.length){const[tid,data]=entries[0];CURRENT_T_ID=tid;rec=data;}
-        }
-      }
-    }
-    // Strategy 3: /latest shortcut written by admin
-    if(!rec){
-      const r=await fetch(base+'/latest.json');
-      if(r.ok){const d=await r.json();if(d&&d.state)rec=d;}
-    }
-
-    if(!rec||!rec.state)
-      throw new Error('No tournament data in Firebase yet. Ask the admin to tap <strong>Push now</strong> in the sync panel.');
+    const nodeUrl=base+'/tournaments/'+CURRENT_T_ID+'.json';
+    const res=await fetch(nodeUrl);
+    if(!res.ok) throw new Error('HTTP '+res.status+' — check Firebase URL and database rules');
+    const rec=await res.json();
+    if(!rec||!rec.state) throw new Error('No tournament data found. Admin must push scores first.');
 
     S=rec.state;
     sanitiseS();
     CURRENT_T_ID=rec.tournamentId||CURRENT_T_ID;
     _lastRemoteTs=rec.ts||0;
-    saveTState(CURRENT_T_ID,S);
-    localStorage.setItem(FB_URL_STORE,_fbUrl);
 
+    // Cache locally so refreshes are instant
+    saveTState(CURRENT_T_ID,S);
+
+    // Merge into local tournament list if not already there
     const list=getTList();
     if(!list.find(t=>t.id===CURRENT_T_ID)){
       list.unshift({id:CURRENT_T_ID,name:S.config.name,sport:S.config.sport||'',
         emoji:S.config.emoji||'🏆',lastSaved:rec.ts||Date.now()});
       saveTList(list);
     }
-    _finishEnterViewer();
 
-  }catch(err){
+    // Save Firebase URL for future use
+    localStorage.setItem(FB_URL_STORE,_fbUrl);
+
+    _finishEnterViewer();
+  } catch(err){
     document.getElementById('mode-banner').innerHTML=
-      `<div style="background:#fff0f0;border-bottom:1px solid #fecaca;padding:12px 16px;color:#c00;font-size:13px;display:flex;align-items:flex-start;gap:8px">
-        <i class="ti ti-alert-circle" style="flex-shrink:0;margin-top:1px"></i>
-        <div><strong>Could not load tournament data.</strong><br>
-        <span style="font-size:12px">${err.message}</span><br>
-        <div style="margin-top:8px;font-size:12px">
-          <strong>Checklist:</strong><br>
-          1. Admin must open app, connect Firebase (☁ icon) and tap <strong>Push now</strong><br>
-          2. Firebase Console → Realtime Database → Rules → set <code>".read": true</code><br>
-          3. Database URL must end in <code>.firebaseio.com</code>
-        </div>
-        <button onclick="location.reload()" style="margin-top:8px;padding:6px 14px;background:#0a84ff;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600">↺ Retry</button>
-        </div>
+      `<div style="background:#fff0f0;border-bottom:1px solid #fecaca;padding:.75rem 1rem;color:#c00;font-size:13px;display:flex;align-items:center;gap:8px">
+        <i class="ti ti-alert-circle"></i>
+        <span><strong>Could not load tournament:</strong> ${err.message}.
+        <br><span style="font-size:12px">Make sure Firebase rules allow <strong>public read</strong> (<code>".read": true</code>), then refresh.</span></span>
       </div>`;
     document.getElementById('tabs-bar').style.visibility='visible';
     document.getElementById('app-tname').textContent='Error';
@@ -2192,7 +2174,7 @@ async function enterViewerFromUrl(){
 }
 
 function _finishEnterViewer(){
-  sanitiseS(); // ensures GAMES, MALE_KEYS, FEMALE_KEYS, groups, matches, schedule are safe
+  sanitiseS();
 
   document.getElementById('app-tname').textContent=S.config.name;
   const badge=document.getElementById('app-role-badge');
