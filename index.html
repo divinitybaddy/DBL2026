@@ -818,25 +818,36 @@ function gateSubmit(){
 }
 
 function sanitiseS(){
-  if(!S||typeof S!=='object') S={};
-  if(!S.config||typeof S.config!=='object') S.config={};
-  if(!S.config.name)   S.config.name='Tournament';
-  if(!S.config.emoji)  S.config.emoji='🏆';
-  if(!S.config.sport)  S.config.sport='';
-  if(!S.config.pw)     S.config.pw='admin';
-  if(typeof S.config.female!=='number') S.config.female=0;
-  if(typeof S.config.male!=='number')   S.config.male=0;
-  if(!Array.isArray(S.config.gamesConfig)) S.config.gamesConfig=[];
-  if(!Array.isArray(S.groups))             S.groups=[];
-  if(!S.teams||typeof S.teams!=='object')  S.teams={};
-  if(!S.matches||typeof S.matches!=='object') S.matches={};
-  if(!Array.isArray(S.schedule)) S.schedule=[];
-  S.groups.forEach(g=>{if(!Array.isArray(S.teams[g.id])) S.teams[g.id]=[];});
-  GAMES=S.config.gamesConfig;
-  MALE_KEYS=[];FEMALE_KEYS=[];
-  for(let i=1;i<=S.config.male;i++)   MALE_KEYS.push('m'+i);
-  for(let i=1;i<=S.config.female;i++) FEMALE_KEYS.push('f'+i);
+  if(!S || typeof S !== 'object') S = {};
+  if(!S.config || typeof S.config !== 'object') S.config = {};
+  if(!S.config.name)   S.config.name = 'Tournament';
+  if(!S.config.emoji)  S.config.emoji = '🏆';
+  if(!S.config.sport)  S.config.sport = '';
+  if(!S.config.pw)     S.config.pw = 'admin';
+  if(typeof S.config.female !== 'number') S.config.female = 0;
+  if(typeof S.config.male !== 'number')   S.config.male = 0;
+  if(!Array.isArray(S.config.gamesConfig)) S.config.gamesConfig = [];
+  if(!Array.isArray(S.groups))             S.groups = [];
+  
+  // CRITICAL: Ensure teams is a valid object before looping
+  if(!S.teams || typeof S.teams !== 'object') S.teams = {};
+  
+  if(!S.matches || typeof S.matches !== 'object') S.matches = {};
+  if(!Array.isArray(S.schedule)) S.schedule = [];
+  
+  // Force reconstruct arrays for groups that Firebase stripped out
+  S.groups.forEach(g => {
+    if(!S.teams[g.id] || !Array.isArray(S.teams[g.id])) {
+      S.teams[g.id] = [];
+    }
+  });
+  
+  GAMES = S.config.gamesConfig;
+  MALE_KEYS = []; FEMALE_KEYS = [];
+  for(let i = 1; i <= S.config.male; i++)   MALE_KEYS.push('m' + i);
+  for(let i = 1; i <= S.config.female; i++) FEMALE_KEYS.push('f' + i);
 }
+
 function enterApp(){
   // Load state — fall back to JSONBin pull if not in localStorage
   let state=getTState(CURRENT_T_ID);
@@ -1024,21 +1035,23 @@ async function fbPull(manual=false){
   if(manual)setSyncStatus('syncing','Pulling…');
   try{
     const res=await fetch(fbNode()+'.json');
+	// Ensure this order inside your fbPull() function:
+	if(rec.ts && rec.ts > _lastRemoteTs){
+		_lastRemoteTs = rec.ts;
+	if(!IS_ADMIN){
+		S = rec.state;
+		sanitiseS(); // <-- Must run right here!
+		saveTState(CURRENT_T_ID, S);
+		refreshCurrentTab();
+	}
+	setSyncStatus('ok', 'Live sync on');
+	setLastSync('Updated ' + fmtTime());
+	if(manual) showToast('Pulled latest data ✓', 'success');
+}
     if(!res.ok)throw new Error('HTTP '+res.status);
     const rec=await res.json();
     if(!rec||!rec.state){if(manual)showToast('No data yet','info');return;}
-    if(rec.ts&&rec.ts>_lastRemoteTs){
-      _lastRemoteTs=rec.ts;
-      if(!IS_ADMIN){
-        S=rec.state;
-        sanitiseS();
-        saveTState(CURRENT_T_ID,S);
-        refreshCurrentTab();
-      }
-      setSyncStatus('ok','Live sync on');
-      setLastSync('Updated '+fmtTime());
-      if(manual)showToast('Pulled latest data ✓','success');
-    }else{
+	else{
       setSyncStatus('ok','Live sync on');
       if(manual)showToast('Already up to date','info');
     }
