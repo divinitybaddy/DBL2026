@@ -818,33 +818,39 @@ function gateSubmit(){
 }
 
 function sanitiseS(){
-  if(!S) S={};
-  if(!S.config) S.config={name:'Tournament',sport:'',emoji:'🏆',female:0,male:0,pw:'admin',gamesConfig:[],createdAt:Date.now()};
-  if(!Array.isArray(S.config.gamesConfig)) S.config.gamesConfig=[];
-  if(!Array.isArray(S.groups)) S.groups=[];
+  if(!S||typeof S!=='object') S={};
+  // Config
+  if(!S.config||typeof S.config!=='object') S.config={};
+  const cfg=S.config;
+  cfg.name      = cfg.name      ||'Tournament';
+  cfg.sport     = cfg.sport     ||'';
+  cfg.emoji     = cfg.emoji     ||'🏆';
+  cfg.female    = Number(cfg.female)||0;
+  cfg.male      = Number(cfg.male)  ||0;
+  cfg.pw        = cfg.pw        ||ADMIN_PW_DEFAULT;
+  cfg.gamesConfig = Array.isArray(cfg.gamesConfig)?cfg.gamesConfig:[];
+  // Groups, teams, matches, schedule
+  if(!Array.isArray(S.groups))  S.groups=[];
   if(!S.teams||typeof S.teams!=='object') S.teams={};
   if(!S.matches||typeof S.matches!=='object') S.matches={};
   if(!Array.isArray(S.schedule)) S.schedule=[];
-  GAMES=S.config.gamesConfig||[];
+  // Ensure every group has a teams array
+  S.groups.forEach(g=>{ if(!S.teams[g.id]) S.teams[g.id]=[]; });
+  // Rebuild GAMES and gender key arrays from config
+  GAMES = cfg.gamesConfig;
   MALE_KEYS=[];FEMALE_KEYS=[];
-  for(let i=1;i<=(S.config.male||0);i++) MALE_KEYS.push('m'+i);
-  for(let i=1;i<=(S.config.female||0);i++) FEMALE_KEYS.push('f'+i);
+  for(let i=1;i<=cfg.female;i++) FEMALE_KEYS.push('f'+i);
+  for(let i=1;i<=cfg.male;i++)   MALE_KEYS.push('m'+i);
 }
 function enterApp(){
-  // Load state — fall back to JSONBin pull if not in localStorage
   let state=getTState(CURRENT_T_ID);
   if(!state&&_fbUrl){
-    // Will async-load then re-enter
     enterViewerFromUrl();
     return;
   }
   if(!state){showToast('Tournament data not found','error');backToLanding();return;}
   S=state;
-  // Build GAMES from config
-  GAMES=S.config.gamesConfig||[];
-  MALE_KEYS=[];FEMALE_KEYS=[];
-  for(let i=1;i<=S.config.male;i++)MALE_KEYS.push('m'+i);
-  for(let i=1;i<=S.config.female;i++)FEMALE_KEYS.push('f'+i);
+  sanitiseS(); // populate GAMES, MALE_KEYS, FEMALE_KEYS and guard all arrays
 
   // Update UI
   document.getElementById('app-tname').textContent=S.config.name;
@@ -947,7 +953,7 @@ function fbNode(){
   return base+'/tournaments/'+CURRENT_T_ID;
 }
 
-// ── Connect: validate URL + do a test write ───────────
+// ── Connect: validate URL + do a test READ ────────────
 async function fbConnect(){
   const url=document.getElementById('fb-url-input').value.trim();
   const statusEl=document.getElementById('fb-connect-status');
@@ -962,13 +968,14 @@ async function fbConnect(){
   statusEl.textContent='';statusEl.style.color='#555';
   _fbUrl=url;
   try{
-    // Test write
-    const testUrl=_fbUrl.replace(/\/+$/,'')+'/tournaments/'+CURRENT_T_ID+'/ping.json';
-    const res=await fetch(testUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:'"ok"'});
-    if(!res.ok){
-      const t=await res.text();
-      throw new Error('HTTP '+res.status+' — '+t.slice(0,120));
+    // Test READ (not write) — works with both open rules and auth-required write rules
+    const testUrl=_fbUrl.replace(/\/+$/,'')+'/.json?shallow=true';
+    const res=await fetch(testUrl);
+    // 401/403 means wrong URL or no read access — anything else we treat as reachable
+    if(res.status===401||res.status===403){
+      throw new Error('Firebase denied access ('+res.status+'). Set database rules ".read": true, or check the URL.');
     }
+    // 200 or 404 (empty db) both mean the URL is valid and readable
     localStorage.setItem(FB_URL_STORE,url);
     setSyncStatus('ok','Live sync on');
     startPolling();
@@ -994,11 +1001,11 @@ async function fbPush(manual=false){
   if(manual)setSyncStatus('syncing','Pushing…');
   try{
     const payload={state:S,tournamentId:CURRENT_T_ID,ts:Date.now()};
-    const res=await fetch(fbNode()+'.json',{
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    });
+    const base=_fbUrl.replace(/\/+$/,'');
+    const [res]=await Promise.all([
+      fetch(fbNode()+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
+      fetch(base+'/latest.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    ]);
     if(!res.ok)throw new Error('HTTP '+res.status);
     _lastRemoteTs=payload.ts;
     setSyncStatus('ok','Live sync on');
@@ -1023,7 +1030,7 @@ async function fbPull(manual=false){
     if(rec.ts&&rec.ts>_lastRemoteTs){
       _lastRemoteTs=rec.ts;
       if(!IS_ADMIN){
-        S=rec.state;
+        S=rec.state||{};
         sanitiseS();
         saveTState(CURRENT_T_ID,S);
         refreshCurrentTab();
@@ -1688,9 +1695,14 @@ function drawGame(def,tA,tB,key,gid,md){
         // Current saved selection for this slot (stored overrides default; blank means unselected)
         const saved=(stored&&stored[slot.key]!=null)?stored[slot.key]:'';
         const isF=slot.type==='f';
-        // Build the roster for this slot: all players of matching gender on this team
-        const genderKeys=isF?FEMALE_KEYS:MALE_KEYS;
-        const roster=genderKeys.map(k=>pv(tm,k)).filter(n=>n);
+        // Build roster directly from tm.players keys by gender prefix
+        // This works even if FEMALE_KEYS/MALE_KEYS are not yet populated
+        const prefix=isF?'f':'m';
+        const players=tm.players&&typeof tm.players==='object'?tm.players:{};
+        const roster=Object.entries(players)
+          .filter(([k,v])=>k.startsWith(prefix)&&v&&v.trim())
+          .sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true}))
+          .map(([,v])=>v.trim());
         const slotLabel=`<span class="badge ${isF?'bf':'bm'}">${isF?'F':'M'}</span>`;
         h+=`<div class="player-row"><label>${slotLabel} Slot ${slot.key}</label>`;
         if(IS_ADMIN){
@@ -2113,40 +2125,65 @@ async function enterViewerFromUrl(){
   document.getElementById('sync-status').style.display='';
 
   try{
-    // Pull state from Firebase — public read in test mode
     const base=_fbUrl.replace(/\/+$/,'');
-    const nodeUrl=base+'/tournaments/'+CURRENT_T_ID+'.json';
-    const res=await fetch(nodeUrl);
-    if(!res.ok) throw new Error('HTTP '+res.status+' — check Firebase URL and database rules');
-    const rec=await res.json();
-    if(!rec||!rec.state) throw new Error('No tournament data found. Admin must push scores first.');
+    let rec=null;
+
+    // Strategy 1: exact tournament ID node
+    if(CURRENT_T_ID&&!CURRENT_T_ID.startsWith('viewer_')){
+      const r=await fetch(base+'/tournaments/'+CURRENT_T_ID+'.json');
+      if(r.ok){const d=await r.json();if(d&&d.state)rec=d;}
+    }
+    // Strategy 2: scan all tournaments, pick most recent
+    if(!rec){
+      const r=await fetch(base+'/tournaments.json');
+      if(r.ok){
+        const all=await r.json();
+        if(all&&typeof all==='object'){
+          const entries=Object.entries(all)
+            .filter(([,v])=>v&&v.state)
+            .sort(([,a],[,b])=>(b.ts||0)-(a.ts||0));
+          if(entries.length){const[tid,data]=entries[0];CURRENT_T_ID=tid;rec=data;}
+        }
+      }
+    }
+    // Strategy 3: /latest shortcut written by admin
+    if(!rec){
+      const r=await fetch(base+'/latest.json');
+      if(r.ok){const d=await r.json();if(d&&d.state)rec=d;}
+    }
+
+    if(!rec||!rec.state)
+      throw new Error('No tournament data in Firebase yet. Ask the admin to tap <strong>Push now</strong> in the sync panel.');
 
     S=rec.state;
     sanitiseS();
     CURRENT_T_ID=rec.tournamentId||CURRENT_T_ID;
     _lastRemoteTs=rec.ts||0;
-
-    // Cache locally so refreshes are instant
     saveTState(CURRENT_T_ID,S);
+    localStorage.setItem(FB_URL_STORE,_fbUrl);
 
-    // Merge into local tournament list if not already there
     const list=getTList();
     if(!list.find(t=>t.id===CURRENT_T_ID)){
       list.unshift({id:CURRENT_T_ID,name:S.config.name,sport:S.config.sport||'',
         emoji:S.config.emoji||'🏆',lastSaved:rec.ts||Date.now()});
       saveTList(list);
     }
-
-    // Save Firebase URL for future use
-    localStorage.setItem(FB_URL_STORE,_fbUrl);
-
     _finishEnterViewer();
-  } catch(err){
+
+  }catch(err){
     document.getElementById('mode-banner').innerHTML=
-      `<div style="background:#fff0f0;border-bottom:1px solid #fecaca;padding:.75rem 1rem;color:#c00;font-size:13px;display:flex;align-items:center;gap:8px">
-        <i class="ti ti-alert-circle"></i>
-        <span><strong>Could not load tournament:</strong> ${err.message}.
-        <br><span style="font-size:12px">Make sure your Firebase Realtime Database rules allow public read, then refresh.</span></span>
+      `<div style="background:#fff0f0;border-bottom:1px solid #fecaca;padding:12px 16px;color:#c00;font-size:13px;display:flex;align-items:flex-start;gap:8px">
+        <i class="ti ti-alert-circle" style="flex-shrink:0;margin-top:1px"></i>
+        <div><strong>Could not load tournament data.</strong><br>
+        <span style="font-size:12px">${err.message}</span><br>
+        <div style="margin-top:8px;font-size:12px">
+          <strong>Checklist:</strong><br>
+          1. Admin must open app, connect Firebase (☁ icon) and tap <strong>Push now</strong><br>
+          2. Firebase Console → Realtime Database → Rules → set <code>".read": true</code><br>
+          3. Database URL must end in <code>.firebaseio.com</code>
+        </div>
+        <button onclick="location.reload()" style="margin-top:8px;padding:6px 14px;background:#0a84ff;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600">↺ Retry</button>
+        </div>
       </div>`;
     document.getElementById('tabs-bar').style.visibility='visible';
     document.getElementById('app-tname').textContent='Error';
