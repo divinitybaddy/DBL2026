@@ -1288,7 +1288,7 @@ function getGroupToppers(){
       const{sw,sl,sdiff}=calcSetStats(r.tm.id,teams);
       r.sw=sw;r.sl=sl;r.sdiff=sdiff;
     });
-    rows.sort((a,b)=>b.pts-a.pts||b.sdiff-a.sdiff||b.sw-a.sw||(b.diff-a.diff)||(b.gw-a.gw));
+    rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.sdiff-a.sdiff)||(b.gw-a.gw)||headToHeadResult(b.tm.id,a.tm.id));
     toppers[g.id]=rows;
   });
   return toppers;
@@ -1835,18 +1835,39 @@ function calcSetStats(tmId,teamList){
     const key=mkey(tmId,opp.id);
     const md=S.matches&&S.matches[key];if(!md)return;
     const tA=teamById(md.teamA),tB=teamById(md.teamB);if(!tA||!tB)return;
-    (GAMES||[]).filter(def=>!def.special).forEach(def=>{
+    const iAmA=(tmId===md.teamA);
+    (GAMES||[]).forEach(def=>{
       const g=md.games&&md.games['g'+def.n];if(!g)return;
+      if(def.special){
+        // Fab Four: a decided game counts as exactly 1 set for the winner
+        const w=gameWin(def,g,tA,tB);
+        if(w===tA.id){if(iAmA)sw++;else sl++;}
+        else if(w===tB.id){if(iAmA)sl++;else sw++;}
+        return;
+      }
       const sets=Array.isArray(g.sets)?g.sets:fbArrToArray(g.sets);
       sets.forEach(sv=>{
         if(!sv||sv.a===''||sv.b==='')return;
         const a=Number(sv.a),b=Number(sv.b);if(a===b)return;
-        const iAmA=(tmId===md.teamA);
         if(iAmA){if(a>b)sw++;else sl++;}else{if(b>a)sw++;else sl++;}
       });
     });
   });
   return{sw,sl,sdiff:sw-sl};
+}
+
+// ── Head-to-head tiebreaker: returns 1 if tmIdA beat tmIdB, -1 if tmIdB beat tmIdA, 0 if no result/tied ──
+function headToHeadResult(tmIdA,tmIdB){
+  const key=mkey(tmIdA,tmIdB);
+  const md=S.matches&&S.matches[key];
+  if(!md)return 0;
+  const tA=teamById(md.teamA),tB=teamById(md.teamB);
+  if(!tA||!tB)return 0;
+  const sum=calcSum(key,tA,tB);
+  if(!sum.winnerId)return 0;
+  if(sum.winnerId===tmIdA)return 1;
+  if(sum.winnerId===tmIdB)return -1;
+  return 0;
 }
 
 function showGS(gid,btn){
@@ -1878,7 +1899,7 @@ function showGS(gid,btn){
     rows.push({tm,mp,mw,ml,pts,gw,gl,gdiff:gw-gl,sw,sl,sdiff});
   });
 
-  rows.sort((a,b)=>b.pts-a.pts||b.sdiff-a.sdiff||b.sw-a.sw||b.gdiff-a.gdiff||b.gw-a.gw);
+  rows.sort((a,b)=>b.pts-a.pts||(b.gdiff-a.gdiff)||(b.sdiff-a.sdiff)||(b.gw-a.gw)||headToHeadResult(b.tm.id,a.tm.id));
   const hasTie=rows.some((r,i)=>i>0&&rows[i-1].pts===r.pts);
 
   let h='<div class="card">';
@@ -1886,10 +1907,11 @@ function showGS(gid,btn){
     h+=`<div style="background:#fff4e6;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:#92400e">
       <div style="font-weight:700;margin-bottom:6px">⚖️ Tie detected — tiebreaker active:</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
-        <span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">1. Match pts</span>
-        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">2. Set diff</span>
-        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">3. Sets won</span>
-        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">4. Game diff</span>
+        <span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">1. Points</span>
+        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">2. Game diff</span>
+        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">3. Set diff</span>
+        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">4. Games won</span>
+        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">5. Head-to-head</span>
       </div>
     </div>`;
   }
@@ -1983,69 +2005,12 @@ function showGS(gid,btn){
   <div style="font-size:.82rem;color:#555;line-height:1.9">
     <div><b>Match win:</b> Win ${needed} of ${gLen} games → <b>2 points</b></div>
     <div style="font-weight:700;margin:8px 0 4px">Tiebreaker order (when points are equal)</div>
-    ${['Set difference (SW − SL)','Sets won','Game difference','Games won']
+    ${['Game difference (GW − GL)','Set difference (SW − SL)','Games won','Head-to-head result']
       .map((t,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
         <span style="background:#0a84ff;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0">${i+1}</span>
         <span>${t}</span></div>`).join('')}
   </div></div>`;
 
-  el.innerHTML=h;
-}function showGS(gid,btn){
-  document.querySelectorAll('.group-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
-  const teams=S.teams[gid]||[];const el=document.getElementById('gs-body');
-  if(!teams.length){el.innerHTML='<div style="padding:1rem;color:#aaa">No teams.</div>';return;}
-  const needed=Math.floor(GAMES.length/2)+1;
-  let rows=[];
-  teams.forEach(tm=>{
-    let mp=0,mw=0,ml=0,pts=0,gw=0,gl=0;
-    teams.forEach(opp=>{
-      if(opp.id===tm.id)return;const key=mkey(tm.id,opp.id);const md=S.matches[key];if(!md)return;
-      const tA=teamById(md.teamA),tB=teamById(md.teamB);const sum=calcSum(key,tA,tB);
-      const mg=tm.id===md.teamA?sum.gA:sum.gB,og=tm.id===md.teamA?sum.gB:sum.gA;
-      if(mg>0||og>0){mp++;if(mg>=needed){mw++;pts+=2;}else if(og>=needed)ml++;gw+=mg;gl+=og;}
-    });
-    rows.push({tm,mp,mw,ml,pts,gw,gl,diff:gw-gl});
-  });
-  rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.gw-a.gw));
-  let h=`<div class="card"><table>
-  <thead><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>L</th><th>GW</th><th>GL</th><th>+/-</th><th>Pts</th></tr></thead><tbody>`;
-  rows.forEach((r,i)=>{
-    const q=i<2;
-    h+=`<tr><td style="font-weight:700;color:#555">${i+1}</td>
-    <td style="font-weight:700">${esc(r.tm.name)} ${q?`<span class="badge bp">Q</span>`:''}</td>
-    <td>${r.mp}</td><td>${r.mw}</td><td>${r.ml}</td><td>${r.gw}</td><td>${r.gl}</td>
-    <td style="font-family:ui-monospace,monospace;color:${r.diff>0?'#1a7a3a':r.diff<0?'#ff3b30':'#555'}">${r.diff>0?'+':''}${r.diff}</td>
-    <td><span class="badge bm" style="font-size:.875rem;font-weight:800;font-family:ui-monospace,monospace">${r.pts}</span></td></tr>`;
-  });
-  h+=`</tbody></table><div style="font-size:.72rem;color:#555;margin-top:6px">Q = qualifies for knockout. Win ${needed} of ${GAMES.length} games to win a match.</div></div>`;
-
-  const pairs=[];
-  for(let i=0;i<teams.length;i++) for(let j=i+1;j<teams.length;j++) pairs.push([teams[i],teams[j]]);
-  if(pairs.length){
-    h+=`<div class="card"><div class="card-title"><i class="ti ti-calendar"></i> Fixtures</div>`;
-    pairs.forEach(([tA,tB])=>{
-      const key=mkey(tA.id,tB.id);const md=S.matches[key];
-      const sum=md?calcSum(key,teamById(md.teamA),teamById(md.teamB)):{gA:0,gB:0,done:false,leader:''};
-      const sched=S.schedule.find(s=>s.matchKey===key);
-      const dots=GAMES.map(def=>{if(!md)return`<span class="seq-dot">${def.n}</span>`;const w=gameWin(def,md.games['g'+def.n],tA,tB);return`<span class="seq-dot ${w===tA.id?'won':w===tB.id?'lost':''}">${def.n}</span>`;}).join('');
-      h+=`<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:1px solid #e5e5ea;flex-wrap:wrap">
-      <div style="min-width:160px"><div style="font-size:.85rem;font-weight:700">${esc(tA.name)} vs ${esc(tB.name)}</div>
-      ${sched?`<div style="font-size:.72rem;color:#555">${sched.date?formatDate(sched.date):'TBD'}${sched.time?' · '+sched.time:''}${sched.venue?' · '+esc(sched.venue):''}</div>`:''}
-      </div><div style="display:flex;gap:3px">${dots}</div>
-      <span style="margin-left:auto;font-size:.85rem;font-weight:700;font-family:ui-monospace,monospace">${sum.gA}–${sum.gB}</span>
-      ${sum.done?`<span class="badge bs"><i class="ti ti-trophy"></i> ${esc(sum.leader)}</span>`:`<span class="badge bg">Pending</span>`}
-      ${tA&&tB?`<button class="btn btn-sm" onclick="goToMatchup('${tA.id}','${tB.id}')"><i class="ti ti-${IS_ADMIN?'edit':'eye'}"></i></button>`:''}
-      </div>`;
-    });h+=`</div>`;
-  }
-
-  // Scoring rules
-  h+=`<div class="card"><div class="card-title"><i class="ti ti-info-circle"></i> Scoring rules</div>
-  <div style="font-size:.82rem;color:#555;line-height:2">
-  <div>• Win ${needed} of ${GAMES.length} games → <strong>2 match points</strong></div>
-  ${GAMES.filter(g=>!g.special).map(g=>`<div>• Game ${g.n} (${esc(g.label)}): Best of ${g.defSets}, first to ${g.winSets} sets wins</div>`).join('')}
-  ${GAMES.filter(g=>g.special).map(g=>`<div>• Game ${g.n} (${esc(g.label)}): Direct points scoring (max ${g.pts})</div>`).join('')}
-  </div></div>`;
   el.innerHTML=h;
 }
 
