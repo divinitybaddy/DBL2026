@@ -818,36 +818,39 @@ function gateSubmit(){
 }
 
 function sanitiseS(){
-  if(!S || typeof S !== 'object') S = {};
-  if(!S.config || typeof S.config !== 'object') S.config = {};
-  if(!S.config.name)   S.config.name = 'Tournament';
-  if(!S.config.emoji)  S.config.emoji = '🏆';
-  if(!S.config.sport)  S.config.sport = '';
-  if(!S.config.pw)     S.config.pw = 'admin';
-  if(typeof S.config.female !== 'number') S.config.female = 0;
-  if(typeof S.config.male !== 'number')   S.config.male = 0;
-  if(!Array.isArray(S.config.gamesConfig)) S.config.gamesConfig = [];
-  if(!Array.isArray(S.groups))             S.groups = [];
-  
-  // CRITICAL: Ensure teams is a valid object before looping
-  if(!S.teams || typeof S.teams !== 'object') S.teams = {};
-  
-  if(!S.matches || typeof S.matches !== 'object') S.matches = {};
-  if(!Array.isArray(S.schedule)) S.schedule = [];
-  
-  // Force reconstruct arrays for groups that Firebase stripped out
-  S.groups.forEach(g => {
-    if(!S.teams[g.id] || !Array.isArray(S.teams[g.id])) {
-      S.teams[g.id] = [];
-    }
+  if(!S||typeof S!=='object') S={};
+  if(!S.config||typeof S.config!=='object') S.config={};
+  if(!S.config.name)   S.config.name='Tournament';
+  if(!S.config.emoji)  S.config.emoji='🏆';
+  if(!S.config.sport)  S.config.sport='';
+  if(!S.config.pw)     S.config.pw='admin';
+  if(typeof S.config.female!=='number') S.config.female=0;
+  if(typeof S.config.male!=='number')   S.config.male=0;
+  // Firebase coerces JS arrays to {0:…,1:…} objects — convert back
+  function toArr(v){
+    if(Array.isArray(v)) return v;
+    if(v&&typeof v==='object') return Object.values(v);
+    return [];
+  }
+  S.config.gamesConfig=toArr(S.config.gamesConfig);
+  S.groups=toArr(S.groups);
+  if(!S.teams||typeof S.teams!=='object') S.teams={};
+  // Also fix each team array inside teams
+  Object.keys(S.teams).forEach(gid=>{
+    S.teams[gid]=toArr(S.teams[gid]);
+    S.teams[gid].forEach(tm=>{
+      if(!tm.players||typeof tm.players!=='object') tm.players={};
+    });
   });
-  
-  GAMES = S.config.gamesConfig;
-  MALE_KEYS = []; FEMALE_KEYS = [];
-  for(let i = 1; i <= S.config.male; i++)   MALE_KEYS.push('m' + i);
-  for(let i = 1; i <= S.config.female; i++) FEMALE_KEYS.push('f' + i);
+  if(!S.matches||typeof S.matches!=='object') S.matches={};
+  S.schedule=toArr(S.schedule);
+  // Ensure every group has a teams array
+  S.groups.forEach(g=>{if(!Array.isArray(S.teams[g.id])) S.teams[g.id]=[];});
+  GAMES=S.config.gamesConfig;
+  MALE_KEYS=[];FEMALE_KEYS=[];
+  for(let i=1;i<=S.config.male;i++)   MALE_KEYS.push('m'+i);
+  for(let i=1;i<=S.config.female;i++) FEMALE_KEYS.push('f'+i);
 }
-
 function enterApp(){
   // Load state — fall back to JSONBin pull if not in localStorage
   let state=getTState(CURRENT_T_ID);
@@ -980,7 +983,7 @@ async function fbConnect(){
   statusEl.textContent='';statusEl.style.color='#555';
   _fbUrl=url;
   try{
-    // Test read (avoids 401 when write requires auth)
+    // Test read — avoids 401 when write rules require auth
     const testUrl=_fbUrl.replace(/\/+$/,'')+'/tournaments/'+CURRENT_T_ID+'.json';
     const res=await fetch(testUrl,{method:'GET'});
     if(!res.ok){
@@ -1035,23 +1038,21 @@ async function fbPull(manual=false){
   if(manual)setSyncStatus('syncing','Pulling…');
   try{
     const res=await fetch(fbNode()+'.json');
-	// Ensure this order inside your fbPull() function:
-	if(rec.ts && rec.ts > _lastRemoteTs){
-		_lastRemoteTs = rec.ts;
-	if(!IS_ADMIN){
-		S = rec.state;
-		sanitiseS(); // <-- Must run right here!
-		saveTState(CURRENT_T_ID, S);
-		refreshCurrentTab();
-	}
-	setSyncStatus('ok', 'Live sync on');
-	setLastSync('Updated ' + fmtTime());
-	if(manual) showToast('Pulled latest data ✓', 'success');
-}
     if(!res.ok)throw new Error('HTTP '+res.status);
     const rec=await res.json();
     if(!rec||!rec.state){if(manual)showToast('No data yet','info');return;}
-	else{
+    if(rec.ts&&rec.ts>_lastRemoteTs){
+      _lastRemoteTs=rec.ts;
+      if(!IS_ADMIN){
+        S=rec.state;
+        sanitiseS();
+        saveTState(CURRENT_T_ID,S);
+        refreshCurrentTab();
+      }
+      setSyncStatus('ok','Live sync on');
+      setLastSync('Updated '+fmtTime());
+      if(manual)showToast('Pulled latest data ✓','success');
+    }else{
       setSyncStatus('ok','Live sync on');
       if(manual)showToast('Already up to date','info');
     }
@@ -1217,9 +1218,16 @@ function calcSum(key,tA,tB){
   if(!md||!tA||!tB)return{gA:0,gB:0,pA:0,pB:0,swA:0,slA:0,swB:0,slB:0,done:false,winnerId:null,leader:''};
   let gA=0,gB=0,swA=0,swB=0;
   GAMES.forEach(def=>{
-    const w=gameWin(def,md.games['g'+def.n],tA,tB);
+    const g=md.games&&md.games['g'+def.n];
+    const w=gameWin(def,g,tA,tB);
     if(w===tA.id)gA++;else if(w===tB.id)gB++;
-    if(!def.special){const g=md.games['g'+def.n];const sv=setsWon(g?g.sets:[]);swA+=sv.a;swB+=sv.b;}
+    if(!def.special){
+      const sv=setsWon(g&&g.sets?g.sets:[]);swA+=sv.a;swB+=sv.b;
+    } else if(w===tA.id){
+      swA+=1; // Fab Four win counts as 1 set won
+    } else if(w===tB.id){
+      swB+=1;
+    }
   });
   const total=GAMES.length;
   const needed=Math.floor(total/2)+1;
@@ -1710,6 +1718,7 @@ function drawGame(def,tA,tB,key,gid,md){
         const saved=(stored&&stored[slot.key]!=null)?stored[slot.key]:'';
         const isF=slot.type==='f';
         // Build the roster for this slot: all players of matching gender on this team
+        // Build roster from tm.players by key prefix — works even if MALE_KEYS/FEMALE_KEYS empty
         const _pl=tm.players||{};
         const roster=Object.entries(_pl).filter(([k,v])=>v&&v.trim()&&(isF?k.startsWith('f'):k.startsWith('m'))).sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true})).map(([,v])=>v.trim());
         const allPl=Object.values(_pl).filter(v=>v&&v.trim()).map(v=>v.trim());
@@ -1797,27 +1806,18 @@ function showGS(gid,btn){
   });
   rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.sdiff-a.sdiff)||(b.gw-a.gw));
   let h=`<div class="card" style="overflow-x:auto"><table style="min-width:620px">
-  <thead><tr>
-    <th>#</th><th>Team</th>
-    <th title="Matches played">MP</th><th title="Matches won">W</th><th title="Matches lost">L</th>
-    <th title="Games won">GW</th><th title="Games lost">GL</th><th title="Game difference">G+/-</th>
-    <th title="Sets won">SW</th><th title="Sets lost">SL</th><th title="Set difference">S+/-</th>
-    <th>Pts</th>
-  </tr></thead><tbody>`;
+  <thead><tr><th>#</th><th>Team</th><th title="Matches played">MP</th><th title="Matches won">W</th><th title="Matches lost">L</th><th title="Games won">GW</th><th title="Games lost">GL</th><th title="Game diff">G±</th><th title="Sets won">SW</th><th title="Sets lost">SL</th><th title="Set diff">S±</th><th>Pts</th></tr></thead><tbody>`;
   rows.forEach((r,i)=>{
-    const q=i<2;const sdiff=r.sdiff||0;
+    const q=i<2;const sd=r.sdiff||0;
     h+=`<tr><td style="font-weight:700;color:#555">${i+1}</td>
     <td style="font-weight:700">${esc(r.tm.name)} ${q?`<span class="badge bp">Q</span>`:''}</td>
     <td>${r.mp}</td><td>${r.mw}</td><td>${r.ml}</td><td>${r.gw}</td><td>${r.gl}</td>
     <td style="font-family:ui-monospace,monospace;color:${r.diff>0?'#1a7a3a':r.diff<0?'#ff3b30':'#555'}">${r.diff>0?'+':''}${r.diff}</td>
     <td>${r.sw||0}</td><td>${r.sl||0}</td>
-    <td style="font-family:ui-monospace,monospace;color:${sdiff>0?'#1a7a3a':sdiff<0?'#ff3b30':'#555'}">${sdiff>0?'+':''}${sdiff}</td>
+    <td style="font-family:ui-monospace,monospace;color:${sd>0?'#1a7a3a':sd<0?'#ff3b30':'#555'}">${sd>0?'+':''}${sd}</td>
     <td><span class="badge bm" style="font-size:.875rem;font-weight:800;font-family:ui-monospace,monospace">${r.pts}</span></td></tr>`;
   });
-  h+=`</tbody></table><div style="font-size:.72rem;color:#555;margin-top:8px;line-height:1.9">
-  <strong>Q</strong> = qualifies for knockout &nbsp;|&nbsp; Win ${needed} of ${GAMES.length} games to win a match<br>
-  <strong>Tiebreaker:</strong> 1) Points &nbsp;→&nbsp; 2) Game diff (GW−GL) &nbsp;→&nbsp; 3) Set diff (SW−SL) &nbsp;→&nbsp; 4) Games won
-  </div></div>`;
+  h+=`</tbody></table><div style="font-size:.72rem;color:#555;margin-top:8px;line-height:1.9"><strong>Q</strong> = qualifies for knockout &nbsp;|&nbsp; Win ${needed} of ${GAMES.length} games to win a match<br><strong>Tiebreaker:</strong> 1) Points → 2) Game diff (GW−GL) → 3) Set diff (SW−SL) → 4) Games won</div></div>`;
 
   const pairs=[];
   for(let i=0;i<teams.length;i++) for(let j=i+1;j<teams.length;j++) pairs.push([teams[i],teams[j]]);
@@ -2154,7 +2154,7 @@ async function enterViewerFromUrl(){
     if(!rec||!rec.state) throw new Error('No tournament data found. Admin must push scores first.');
 
     S=rec.state;
-    sanitiseS();
+    sanitiseS(); // normalise + fix Firebase array coercion
     CURRENT_T_ID=rec.tournamentId||CURRENT_T_ID;
     _lastRemoteTs=rec.ts||0;
 
@@ -2187,7 +2187,7 @@ async function enterViewerFromUrl(){
 }
 
 function _finishEnterViewer(){
-  sanitiseS();
+  sanitiseS(); // safe-default every field + fix Firebase array coercion
 
   document.getElementById('app-tname').textContent=S.config.name;
   const badge=document.getElementById('app-role-badge');
