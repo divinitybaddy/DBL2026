@@ -1956,38 +1956,38 @@ function showGS(gid,btn){
       const{sw:tAsw}=calcSetStats(tA.id,[tA,tB]);
       const{sw:tBsw}=calcSetStats(tB.id,[tA,tB]);
       const dots=(GAMES||[]).map(def=>{
-        if(!md)return\`<span class="seq-dot">\${def.n}</span>\`;
+        if(!md)return`<span class="seq-dot">${def.n}</span>`;
         const g=md.games&&md.games['g'+def.n];
         const w=gameWin(def,g,tA,tB);
-        return\`<span class="seq-dot \${w===tA.id?'won':w===tB.id?'lost':''}">\${def.n}</span>\`;
+        return`<span class="seq-dot ${w===tA.id?'won':w===tB.id?'lost':''}">${def.n}</span>`;
       }).join('');
-      h+=\`<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #f2f2f7;flex-wrap:wrap">
+      h+=`<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #f2f2f7;flex-wrap:wrap">
         <div style="min-width:130px">
-          <div style="font-size:.85rem;font-weight:700">\${esc(tA.name)} vs \${esc(tB.name)}</div>
-          \${sched?\`<div style="font-size:.72rem;color:#8e8e93">\${sched.date?formatDate(sched.date):'TBD'}\${sched.time?' · '+sched.time:''}\${sched.venue?' · '+esc(sched.venue):''}</div>\`:''}
+          <div style="font-size:.85rem;font-weight:700">${esc(tA.name)} vs ${esc(tB.name)}</div>
+          ${sched?`<div style="font-size:.72rem;color:#8e8e93">${sched.date?formatDate(sched.date):'TBD'}${sched.time?' · '+sched.time:''}${sched.venue?' · '+esc(sched.venue):''}</div>`:''}
         </div>
-        <div style="display:flex;gap:3px">\${dots}</div>
+        <div style="display:flex;gap:3px">${dots}</div>
         <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-          <span style="font-size:.75rem;color:#8e8e93">Sets \${tAsw}–\${tBsw}</span>
-          <span style="font-size:.9rem;font-weight:700;font-family:ui-monospace,monospace">\${sum.gA}–\${sum.gB}</span>
-          \${sum.done?\`<span class="badge bs"><i class="ti ti-trophy"></i> \${esc(sum.leader)}</span>\`:\`<span class="badge bg">Pending</span>\`}
-          <button class="btn btn-sm" onclick="goToMatchup('\${tA.id}','\${tB.id}')"><i class="ti ti-eye"></i></button>
+          <span style="font-size:.75rem;color:#8e8e93">Sets ${tAsw}–${tBsw}</span>
+          <span style="font-size:.9rem;font-weight:700;font-family:ui-monospace,monospace">${sum.gA}–${sum.gB}</span>
+          ${sum.done?`<span class="badge bs"><i class="ti ti-trophy"></i> ${esc(sum.leader)}</span>`:`<span class="badge bg">Pending</span>`}
+          <button class="btn btn-sm" onclick="goToMatchup('${tA.id}','${tB.id}')"><i class="ti ti-eye"></i></button>
         </div>
-      </div>\`;
+      </div>`;
     });
     h+='</div>';
   }
 
   // Tiebreaker rules card
-  h+=\`<div class="card"><div class="card-title"><i class="ti ti-info-circle"></i> Scoring &amp; Tiebreaker Rules</div>
+  h+=`<div class="card"><div class="card-title"><i class="ti ti-info-circle"></i> Scoring &amp; Tiebreaker Rules</div>
   <div style="font-size:.82rem;color:#555;line-height:1.9">
-    <div><b>Match win:</b> Win \${needed} of \${gLen} games → <b>2 points</b></div>
+    <div><b>Match win:</b> Win ${needed} of ${gLen} games → <b>2 points</b></div>
     <div style="font-weight:700;margin:8px 0 4px">Tiebreaker order (when points are equal)</div>
-    \${['Set difference (SW − SL)','Sets won','Game difference','Games won']
-      .map((t,i)=>\`<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-        <span style="background:#0a84ff;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0">\${i+1}</span>
-        <span>\${t}</span></div>\`).join('')}
-  </div></div>\`;
+    ${['Set difference (SW − SL)','Sets won','Game difference','Games won']
+      .map((t,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+        <span style="background:#0a84ff;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0">${i+1}</span>
+        <span>${t}</span></div>`).join('')}
+  </div></div>`;
 
   el.innerHTML=h;
 }function showGS(gid,btn){
