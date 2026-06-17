@@ -817,39 +817,83 @@ function gateSubmit(){
   enterApp();
 }
 
+// Convert Firebase object-of-arrays back to real JS arrays
+function fbArrToArray(v){
+  if(!v) return [];
+  if(Array.isArray(v)) return v;
+  if(typeof v==='object'){
+    // Firebase stores arrays as {0:x,1:y,...}
+    const keys=Object.keys(v);
+    if(keys.every(k=>/^\d+$/.test(k))){
+      const arr=[];keys.sort((a,b)=>a-b).forEach(k=>arr.push(v[k]));
+      return arr;
+    }
+  }
+  return [];
+}
+// Convert Firebase teams object: each group's value may be an object not array
+function normTeams(raw){
+  if(!raw||typeof raw!=='object') return {};
+  const out={};
+  Object.entries(raw).forEach(([gid,val])=>{
+    const arr=fbArrToArray(val);
+    // Each team's players may also need normalising
+    out[gid]=arr.map(tm=>{
+      if(!tm) return null;
+      const players=tm.players&&typeof tm.players==='object'?tm.players:{};
+      return {...tm,players};
+    }).filter(Boolean);
+  });
+  return out;
+}
+// Normalise matches: games sets may be objects
+function normMatches(raw){
+  if(!raw||typeof raw!=='object') return {};
+  const out={};
+  Object.entries(raw).forEach(([key,md])=>{
+    if(!md){return;}
+    const games={};
+    if(md.games&&typeof md.games==='object'){
+      Object.entries(md.games).forEach(([gid,g])=>{
+        if(!g){games[gid]=g;return;}
+        const sets=fbArrToArray(g.sets).map(s=>s||{a:'',b:''});
+        const pA=g.pA&&typeof g.pA==='object'?g.pA:{};
+        const pB=g.pB&&typeof g.pB==='object'?g.pB:{};
+        games[gid]={...g,sets,pA,pB};
+      });
+    }
+    out[key]={...md,games};
+  });
+  return out;
+}
+
 function sanitiseS(){
   if(!S||typeof S!=='object') S={};
+  // Config
   if(!S.config||typeof S.config!=='object') S.config={};
-  if(!S.config.name)   S.config.name='Tournament';
-  if(!S.config.emoji)  S.config.emoji='🏆';
-  if(!S.config.sport)  S.config.sport='';
-  if(!S.config.pw)     S.config.pw='admin';
-  if(typeof S.config.female!=='number') S.config.female=0;
-  if(typeof S.config.male!=='number')   S.config.male=0;
-  // Firebase coerces JS arrays to {0:…,1:…} objects — convert back
-  function toArr(v){
-    if(Array.isArray(v)) return v;
-    if(v&&typeof v==='object') return Object.values(v);
-    return [];
-  }
-  S.config.gamesConfig=toArr(S.config.gamesConfig);
-  S.groups=toArr(S.groups);
-  if(!S.teams||typeof S.teams!=='object') S.teams={};
-  // Also fix each team array inside teams
-  Object.keys(S.teams).forEach(gid=>{
-    S.teams[gid]=toArr(S.teams[gid]);
-    S.teams[gid].forEach(tm=>{
-      if(!tm.players||typeof tm.players!=='object') tm.players={};
-    });
-  });
-  if(!S.matches||typeof S.matches!=='object') S.matches={};
-  S.schedule=toArr(S.schedule);
-  // Ensure every group has a teams array
-  S.groups.forEach(g=>{if(!Array.isArray(S.teams[g.id])) S.teams[g.id]=[];});
-  GAMES=S.config.gamesConfig;
-  MALE_KEYS=[];FEMALE_KEYS=[];
-  for(let i=1;i<=S.config.male;i++)   MALE_KEYS.push('m'+i);
-  for(let i=1;i<=S.config.female;i++) FEMALE_KEYS.push('f'+i);
+  const cfg=S.config;
+  cfg.name       = cfg.name||'Tournament';
+  cfg.sport      = cfg.sport||'';
+  cfg.emoji      = cfg.emoji||'🏆';
+  cfg.female     = Number(cfg.female)||0;
+  cfg.male       = Number(cfg.male)||0;
+  cfg.pw         = cfg.pw||ADMIN_PW_DEFAULT;
+  cfg.gamesConfig= Array.isArray(cfg.gamesConfig)?cfg.gamesConfig:fbArrToArray(cfg.gamesConfig);
+  // Groups — may come back as Firebase object
+  S.groups  = fbArrToArray(S.groups);
+  // Teams — each group value must be an array
+  S.teams   = normTeams(S.teams);
+  // Ensure every group has a teams entry
+  S.groups.forEach(g=>{ if(!S.teams[g.id]) S.teams[g.id]=[]; });
+  // Matches — normalise sets arrays inside each game
+  S.matches  = normMatches(S.matches);
+  // Schedule
+  S.schedule = fbArrToArray(S.schedule);
+  // Rebuild global lookups
+  GAMES      = cfg.gamesConfig;
+  MALE_KEYS=[]; FEMALE_KEYS=[];
+  for(let i=1;i<=cfg.female;i++) FEMALE_KEYS.push('f'+i);
+  for(let i=1;i<=cfg.male;i++)   MALE_KEYS.push('m'+i);
 }
 function enterApp(){
   // Load state — fall back to JSONBin pull if not in localStorage
@@ -861,11 +905,7 @@ function enterApp(){
   }
   if(!state){showToast('Tournament data not found','error');backToLanding();return;}
   S=state;
-  // Build GAMES from config
-  GAMES=S.config.gamesConfig||[];
-  MALE_KEYS=[];FEMALE_KEYS=[];
-  for(let i=1;i<=S.config.male;i++)MALE_KEYS.push('m'+i);
-  for(let i=1;i<=S.config.female;i++)FEMALE_KEYS.push('f'+i);
+  sanitiseS(); // normalise + rebuild GAMES/MALE_KEYS/FEMALE_KEYS
 
   // Update UI
   document.getElementById('app-tname').textContent=S.config.name;
@@ -983,13 +1023,13 @@ async function fbConnect(){
   statusEl.textContent='';statusEl.style.color='#555';
   _fbUrl=url;
   try{
-    // Test read — avoids 401 when write rules require auth
-    const testUrl=_fbUrl.replace(/\/+$/,'')+'/tournaments/'+CURRENT_T_ID+'.json';
-    const res=await fetch(testUrl,{method:'GET'});
-    if(!res.ok){
-      const t=await res.text();
-      throw new Error('HTTP '+res.status+' — '+t.slice(0,120));
+    // Test READ — works with ".read":true rules; avoids 401 from write-auth rules
+    const testUrl=_fbUrl.replace(/\/+$/,'')+'/.json?shallow=true';
+    const res=await fetch(testUrl);
+    if(res.status===401||res.status===403){
+      throw new Error('Firebase denied access ('+res.status+'). Set Realtime Database Rules to ".read": true');
     }
+    // 200 = data exists, 404 = empty DB — both mean URL is valid and reachable
     localStorage.setItem(FB_URL_STORE,url);
     setSyncStatus('ok','Live sync on');
     startPolling();
@@ -1015,11 +1055,11 @@ async function fbPush(manual=false){
   if(manual)setSyncStatus('syncing','Pushing…');
   try{
     const payload={state:S,tournamentId:CURRENT_T_ID,ts:Date.now()};
-    const res=await fetch(fbNode()+'.json',{
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    });
+    const base=_fbUrl.replace(/\/+$/,'');
+    const [res]=await Promise.all([
+      fetch(fbNode()+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),
+      fetch(base+'/latest.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    ]);
     if(!res.ok)throw new Error('HTTP '+res.status);
     _lastRemoteTs=payload.ts;
     setSyncStatus('ok','Live sync on');
@@ -1215,26 +1255,19 @@ function gameWin(def,g,tA,tB){
 
 function calcSum(key,tA,tB){
   const md=S.matches[key];
-  if(!md||!tA||!tB)return{gA:0,gB:0,pA:0,pB:0,swA:0,slA:0,swB:0,slB:0,done:false,winnerId:null,leader:''};
-  let gA=0,gB=0,swA=0,swB=0;
+  if(!md||!tA||!tB)return{gA:0,gB:0,pA:0,pB:0,done:false,winnerId:null,leader:''};
+  let gA=0,gB=0;
   GAMES.forEach(def=>{
-    const g=md.games&&md.games['g'+def.n];
-    const w=gameWin(def,g,tA,tB);
+    const w=gameWin(def,md.games['g'+def.n],tA,tB);
     if(w===tA.id)gA++;else if(w===tB.id)gB++;
-    if(!def.special){
-      const sv=setsWon(g&&g.sets?g.sets:[]);swA+=sv.a;swB+=sv.b;
-    } else if(w===tA.id){
-      swA+=1; // Fab Four win counts as 1 set won
-    } else if(w===tB.id){
-      swB+=1;
-    }
   });
   const total=GAMES.length;
-  const needed=Math.floor(total/2)+1;
+  const needed=Math.floor(total/2)+1; // simple majority
+  // match winner: first to win majority of games OR all special games scored
   const done=(gA>=needed||gB>=needed);
   const winnerId=gA>=needed?tA.id:gB>=needed?tB.id:null;
   const leader=gA>gB?tA.name:gB>gA?tB.name:'Tied';
-  return{gA,gB,pA:gA>=needed?2:0,pB:gB>=needed?2:0,swA,slA:swB,swB,slB:swA,done,winnerId,leader};
+  return{gA,gB,pA:gA>=needed?2:0,pB:gB>=needed?2:0,done,winnerId,leader};
 }
 
 function getGroupToppers(){
@@ -1242,17 +1275,20 @@ function getGroupToppers(){
   S.groups.forEach(g=>{
     const teams=S.teams[g.id]||[];let rows=[];
     teams.forEach(tm=>{
-      let pts=0,gw=0,gl=0,sw=0,sl=0;
+      let pts=0,gw=0,gl=0;
       teams.forEach(opp=>{
         if(opp.id===tm.id)return;const key=mkey(tm.id,opp.id);const md=S.matches[key];if(!md)return;
         const tA=teamById(md.teamA),tB=teamById(md.teamB);const sum=calcSum(key,tA,tB);
         const mg=tm.id===md.teamA?sum.gA:sum.gB,og=tm.id===md.teamA?sum.gB:sum.gA;
-        const msw=tm.id===md.teamA?sum.swA:sum.swB,msl=tm.id===md.teamA?sum.slA:sum.slB;
-        if(mg>0||og>0){if(mg>=Math.floor(GAMES.length/2)+1)pts+=2;gw+=mg;gl+=og;sw+=msw;sl+=msl;}
+        if(mg>0||og>0){if(mg>=Math.floor(GAMES.length/2)+1)pts+=2;gw+=mg;gl+=og;}
       });
-      rows.push({tm,pts,gw,gl,diff:gw-gl,sw,sl,sdiff:sw-sl});
+      rows.push({tm,pts,gw,gl,diff:gw-gl});
     });
-    rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.sdiff-a.sdiff)||(b.gw-a.gw));
+    rows.forEach(r=>{
+      const{sw,sl,sdiff}=calcSetStats(r.tm.id,teams);
+      r.sw=sw;r.sl=sl;r.sdiff=sdiff;
+    });
+    rows.sort((a,b)=>b.pts-a.pts||b.sdiff-a.sdiff||b.sw-a.sw||(b.diff-a.diff)||(b.gw-a.gw));
     toppers[g.id]=rows;
   });
   return toppers;
@@ -1717,22 +1753,26 @@ function drawGame(def,tA,tB,key,gid,md){
         // Current saved selection for this slot (stored overrides default; blank means unselected)
         const saved=(stored&&stored[slot.key]!=null)?stored[slot.key]:'';
         const isF=slot.type==='f';
-        // Build the roster for this slot: all players of matching gender on this team
-        // Build roster from tm.players by key prefix — works even if MALE_KEYS/FEMALE_KEYS empty
-        const _pl=tm.players||{};
-        const roster=Object.entries(_pl).filter(([k,v])=>v&&v.trim()&&(isF?k.startsWith('f'):k.startsWith('m'))).sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true})).map(([,v])=>v.trim());
-        const allPl=Object.values(_pl).filter(v=>v&&v.trim()).map(v=>v.trim());
-        const rosterFinal=roster.length?roster:allPl;
+        // Build roster from tm.players by key prefix — no dependency on FEMALE_KEYS/MALE_KEYS timing
+        const prefix=isF?'f':'m';
+        const players=tm.players&&typeof tm.players==='object'?tm.players:{};
+        const roster=Object.entries(players)
+          .filter(([k,v])=>k.startsWith(prefix)&&v&&String(v).trim())
+          .sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true}))
+          .map(([,v])=>String(v).trim());
         const slotLabel=`<span class="badge ${isF?'bf':'bm'}">${isF?'F':'M'}</span>`;
-        h+=`<div class="player-row"><label>${slotLabel} ${esc(slot.key.toUpperCase())} — ${isF?'Female':'Male'} Player</label>`;
+        h+=`<div class="player-row"><label>${slotLabel} Slot ${slot.key}</label>`;
         if(IS_ADMIN){
-          let _sel=`<select style="width:100%;padding:7px 10px;border:1.5px solid #d1d1d6;border-radius:8px;font-size:.84rem;background:#fff;color:#1c1c1e;cursor:pointer;font-family:inherit" onchange="updP('${key}','${gid}','${isA?'A':'B'}','${slot.key}',this.value)">`;
-          _sel+=`<option value="">— Select ${isF?'female':'male'} player —</option>`;
-          rosterFinal.forEach(n=>{_sel+=`<option value="${esc(n)}"${saved===n?' selected':''}>${esc(n)}</option>`;});
-          if(saved&&!rosterFinal.includes(saved)) _sel+=`<option value="${esc(saved)}" selected>${esc(saved)}</option>`;
-          _sel+='</select>';
-          if(!rosterFinal.length) _sel+=`<div style="font-size:.75rem;color:#ff9500;margin-top:3px"><i class="ti ti-alert-triangle"></i> No players in roster — add players in Setup first</div>`;
-          h+=_sel;
+          // Dropdown of all players of correct gender on that team
+          const opts=`<option value="">— Select player —</option>`+
+            roster.map(n=>`<option value="${esc(n)}"${saved===n?' selected':''}>${esc(n)}</option>`).join('')+
+            // Allow typing a custom name not in roster
+            (saved&&!roster.includes(saved)?`<option value="${esc(saved)}" selected>${esc(saved)} (custom)</option>`:'');
+          h+=`<select onchange="updP('${key}','${gid}','${isA?'A':'B'}','${slot.key}',this.value)" style="margin:0">${opts}</select>`;
+          // Show a "custom name" text input below if no roster available
+          if(!roster.length){
+            h+=`<input type="text" value="${esc(saved)}" placeholder="Enter player name" style="margin:3px 0 0" onchange="updP('${key}','${gid}','${isA?'A':'B'}','${slot.key}',this.value)">`;
+          }
         } else {
           h+=`<div style="padding:8px 10px;border:1px solid #e5e5ea;border-radius:9px;font-size:.85rem;background:#fff;min-height:38px;display:flex;align-items:center">${esc(saved)||`<span style="color:#aeaeb2;font-size:.78rem">Not selected</span>`}</div>`;
         }
@@ -1787,37 +1827,197 @@ function renderStandingsTab(){
   el.innerHTML=h;showGS(S.groups[0].id,el.querySelector('.group-tab'));
 }
 
+// ── Count sets won/lost for one team against a list of opponents ──────
+function calcSetStats(tmId,teamList){
+  let sw=0,sl=0;
+  (teamList||[]).forEach(opp=>{
+    if(!opp||opp.id===tmId)return;
+    const key=mkey(tmId,opp.id);
+    const md=S.matches&&S.matches[key];if(!md)return;
+    const tA=teamById(md.teamA),tB=teamById(md.teamB);if(!tA||!tB)return;
+    (GAMES||[]).filter(def=>!def.special).forEach(def=>{
+      const g=md.games&&md.games['g'+def.n];if(!g)return;
+      const sets=Array.isArray(g.sets)?g.sets:fbArrToArray(g.sets);
+      sets.forEach(sv=>{
+        if(!sv||sv.a===''||sv.b==='')return;
+        const a=Number(sv.a),b=Number(sv.b);if(a===b)return;
+        const iAmA=(tmId===md.teamA);
+        if(iAmA){if(a>b)sw++;else sl++;}else{if(b>a)sw++;else sl++;}
+      });
+    });
+  });
+  return{sw,sl,sdiff:sw-sl};
+}
+
 function showGS(gid,btn){
+  document.querySelectorAll('.group-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const rawT=S.teams&&S.teams[gid];
+  const teams=Array.isArray(rawT)?rawT:fbArrToArray(rawT);
+  const el=document.getElementById('gs-body');
+  if(!el)return;
+  if(!teams.length){el.innerHTML='<div style="padding:1rem;color:#aaa;text-align:center">No teams in this group yet.</div>';return;}
+  const gLen=(GAMES&&GAMES.length)||1;
+  const needed=Math.floor(gLen/2)+1;
+  let rows=[];
+
+  teams.forEach(tm=>{
+    if(!tm)return;
+    let mp=0,mw=0,ml=0,pts=0,gw=0,gl=0;
+    teams.forEach(opp=>{
+      if(!opp||opp.id===tm.id)return;
+      const key=mkey(tm.id,opp.id);
+      const md=S.matches&&S.matches[key];if(!md)return;
+      const tA=teamById(md.teamA),tB=teamById(md.teamB);if(!tA||!tB)return;
+      const sum=calcSum(key,tA,tB);
+      const mg=tm.id===md.teamA?sum.gA:sum.gB;
+      const og=tm.id===md.teamA?sum.gB:sum.gA;
+      if(mg>0||og>0){mp++;if(mg>=needed){mw++;pts+=2;}else if(og>=needed)ml++;gw+=mg;gl+=og;}
+    });
+    const{sw,sl,sdiff}=calcSetStats(tm.id,teams);
+    rows.push({tm,mp,mw,ml,pts,gw,gl,gdiff:gw-gl,sw,sl,sdiff});
+  });
+
+  rows.sort((a,b)=>b.pts-a.pts||b.sdiff-a.sdiff||b.sw-a.sw||b.gdiff-a.gdiff||b.gw-a.gw);
+  const hasTie=rows.some((r,i)=>i>0&&rows[i-1].pts===r.pts);
+
+  let h='<div class="card">';
+  if(hasTie){
+    h+=`<div style="background:#fff4e6;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:#92400e">
+      <div style="font-weight:700;margin-bottom:6px">⚖️ Tie detected — tiebreaker active:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">1. Match pts</span>
+        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">2. Set diff</span>
+        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">3. Sets won</span>
+        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">4. Game diff</span>
+      </div>
+    </div>`;
+  }
+
+  h+=`<div style="overflow-x:auto"><table style="min-width:500px">
+  <thead><tr>
+    <th style="width:28px">#</th><th>Team</th>
+    <th title="Matches played">MP</th>
+    <th title="Wins" style="color:#1a7a3a">W</th>
+    <th title="Losses" style="color:#ff3b30">L</th>
+    <th title="Games won">GW</th><th title="Games lost">GL</th>
+    <th title="Game diff">G+/-</th>
+    <th title="Sets won" style="border-left:2px solid #e5e5ea;color:#1a7a3a">SW</th>
+    <th title="Sets lost" style="color:#ff3b30">SL</th>
+    <th title="Set diff — tiebreaker" style="font-weight:800">S+/-</th>
+    <th title="Points" style="border-left:2px solid #e5e5ea">Pts</th>
+  </tr></thead><tbody>`;
+
+  rows.forEach((r,i)=>{
+    const q=i<2;
+    const isTied=(i>0&&rows[i-1].pts===r.pts)||(i<rows.length-1&&rows[i+1].pts===r.pts);
+    const sdCol=r.sdiff>0?'#1a7a3a':r.sdiff<0?'#ff3b30':'#555';
+    const gdCol=r.gdiff>0?'#1a7a3a':r.gdiff<0?'#ff3b30':'#555';
+    h+=`<tr style="${q?'background:#f0f7ff':''}">
+      <td style="font-weight:700;color:#8e8e93;text-align:center">${i+1}</td>
+      <td style="font-weight:700">
+        ${esc(r.tm.name)}
+        ${q?'<span class="badge bp" style="margin-left:4px">Q</span>':''}
+        ${isTied?'<span style="margin-left:4px;font-size:.62rem;background:#fff4e6;color:#92400e;border-radius:4px;padding:1px 5px;font-weight:700">TIE</span>':''}
+      </td>
+      <td style="text-align:center">${r.mp}</td>
+      <td style="text-align:center;color:#1a7a3a;font-weight:600">${r.mw}</td>
+      <td style="text-align:center;color:#ff3b30;font-weight:600">${r.ml}</td>
+      <td style="text-align:center">${r.gw}</td>
+      <td style="text-align:center">${r.gl}</td>
+      <td style="text-align:center;font-family:ui-monospace,monospace;font-weight:700;color:${gdCol}">${r.gdiff>0?'+':''}${r.gdiff}</td>
+      <td style="text-align:center;border-left:2px solid #e5e5ea;color:#1a7a3a;font-weight:600">${r.sw}</td>
+      <td style="text-align:center;color:#ff3b30;font-weight:600">${r.sl}</td>
+      <td style="text-align:center;font-family:ui-monospace,monospace;font-weight:800;color:${sdCol};${isTied?'background:#fffbf0;':''}">${r.sdiff>0?'+':''}${r.sdiff}</td>
+      <td style="text-align:center;border-left:2px solid #e5e5ea">
+        <span class="badge bm" style="font-size:.9rem;font-weight:800;font-family:ui-monospace,monospace">${r.pts}</span>
+      </td>
+    </tr>`;
+  });
+
+  h+=`</tbody></table></div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;font-size:.68rem;color:#8e8e93">
+    <span><b>MP</b> Matches played</span><span>·</span><span><b>W/L</b> Win/Loss</span><span>·</span>
+    <span><b>GW/GL</b> Games won/lost</span><span>·</span><span><b>G+/-</b> Game diff</span><span>·</span>
+    <span><b>SW/SL</b> Sets won/lost</span><span>·</span><span><b>S+/-</b> Set diff (tiebreaker)</span><span>·</span>
+    <span><b>Q</b> Qualifies for knockout</span>
+  </div></div>`;
+
+  // Fixtures
+  const pairs=[];
+  for(let i=0;i<teams.length;i++)for(let j=i+1;j<teams.length;j++)pairs.push([teams[i],teams[j]]);
+  if(pairs.length){
+    h+='<div class="card"><div class="card-title"><i class="ti ti-calendar"></i> Fixtures</div>';
+    pairs.forEach(([tA,tB])=>{
+      if(!tA||!tB)return;
+      const key=mkey(tA.id,tB.id);const md=S.matches&&S.matches[key];
+      const sum=md?calcSum(key,teamById(md.teamA),teamById(md.teamB)):{gA:0,gB:0,done:false,leader:''};
+      const sched=S.schedule&&S.schedule.find(s=>s.matchKey===key);
+      const{sw:tAsw}=calcSetStats(tA.id,[tA,tB]);
+      const{sw:tBsw}=calcSetStats(tB.id,[tA,tB]);
+      const dots=(GAMES||[]).map(def=>{
+        if(!md)return\`<span class="seq-dot">\${def.n}</span>\`;
+        const g=md.games&&md.games['g'+def.n];
+        const w=gameWin(def,g,tA,tB);
+        return\`<span class="seq-dot \${w===tA.id?'won':w===tB.id?'lost':''}">\${def.n}</span>\`;
+      }).join('');
+      h+=\`<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #f2f2f7;flex-wrap:wrap">
+        <div style="min-width:130px">
+          <div style="font-size:.85rem;font-weight:700">\${esc(tA.name)} vs \${esc(tB.name)}</div>
+          \${sched?\`<div style="font-size:.72rem;color:#8e8e93">\${sched.date?formatDate(sched.date):'TBD'}\${sched.time?' · '+sched.time:''}\${sched.venue?' · '+esc(sched.venue):''}</div>\`:''}
+        </div>
+        <div style="display:flex;gap:3px">\${dots}</div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          <span style="font-size:.75rem;color:#8e8e93">Sets \${tAsw}–\${tBsw}</span>
+          <span style="font-size:.9rem;font-weight:700;font-family:ui-monospace,monospace">\${sum.gA}–\${sum.gB}</span>
+          \${sum.done?\`<span class="badge bs"><i class="ti ti-trophy"></i> \${esc(sum.leader)}</span>\`:\`<span class="badge bg">Pending</span>\`}
+          <button class="btn btn-sm" onclick="goToMatchup('\${tA.id}','\${tB.id}')"><i class="ti ti-eye"></i></button>
+        </div>
+      </div>\`;
+    });
+    h+='</div>';
+  }
+
+  // Tiebreaker rules card
+  h+=\`<div class="card"><div class="card-title"><i class="ti ti-info-circle"></i> Scoring &amp; Tiebreaker Rules</div>
+  <div style="font-size:.82rem;color:#555;line-height:1.9">
+    <div><b>Match win:</b> Win \${needed} of \${gLen} games → <b>2 points</b></div>
+    <div style="font-weight:700;margin:8px 0 4px">Tiebreaker order (when points are equal)</div>
+    \${['Set difference (SW − SL)','Sets won','Game difference','Games won']
+      .map((t,i)=>\`<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+        <span style="background:#0a84ff;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0">\${i+1}</span>
+        <span>\${t}</span></div>\`).join('')}
+  </div></div>\`;
+
+  el.innerHTML=h;
+}function showGS(gid,btn){
   document.querySelectorAll('.group-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
   const teams=S.teams[gid]||[];const el=document.getElementById('gs-body');
   if(!teams.length){el.innerHTML='<div style="padding:1rem;color:#aaa">No teams.</div>';return;}
   const needed=Math.floor(GAMES.length/2)+1;
   let rows=[];
   teams.forEach(tm=>{
-    let mp=0,mw=0,ml=0,pts=0,gw=0,gl=0,sw=0,sl=0;
+    let mp=0,mw=0,ml=0,pts=0,gw=0,gl=0;
     teams.forEach(opp=>{
       if(opp.id===tm.id)return;const key=mkey(tm.id,opp.id);const md=S.matches[key];if(!md)return;
       const tA=teamById(md.teamA),tB=teamById(md.teamB);const sum=calcSum(key,tA,tB);
       const mg=tm.id===md.teamA?sum.gA:sum.gB,og=tm.id===md.teamA?sum.gB:sum.gA;
-      const msw=tm.id===md.teamA?sum.swA:sum.swB,msl=tm.id===md.teamA?sum.slA:sum.slB;
-      if(mg>0||og>0){mp++;if(mg>=needed){mw++;pts+=2;}else if(og>=needed)ml++;gw+=mg;gl+=og;sw+=msw;sl+=msl;}
+      if(mg>0||og>0){mp++;if(mg>=needed){mw++;pts+=2;}else if(og>=needed)ml++;gw+=mg;gl+=og;}
     });
-    rows.push({tm,mp,mw,ml,pts,gw,gl,diff:gw-gl,sw,sl,sdiff:sw-sl});
+    rows.push({tm,mp,mw,ml,pts,gw,gl,diff:gw-gl});
   });
-  rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.sdiff-a.sdiff)||(b.gw-a.gw));
-  let h=`<div class="card" style="overflow-x:auto"><table style="min-width:620px">
-  <thead><tr><th>#</th><th>Team</th><th title="Matches played">MP</th><th title="Matches won">W</th><th title="Matches lost">L</th><th title="Games won">GW</th><th title="Games lost">GL</th><th title="Game diff">G±</th><th title="Sets won">SW</th><th title="Sets lost">SL</th><th title="Set diff">S±</th><th>Pts</th></tr></thead><tbody>`;
+  rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.gw-a.gw));
+  let h=`<div class="card"><table>
+  <thead><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>L</th><th>GW</th><th>GL</th><th>+/-</th><th>Pts</th></tr></thead><tbody>`;
   rows.forEach((r,i)=>{
-    const q=i<2;const sd=r.sdiff||0;
+    const q=i<2;
     h+=`<tr><td style="font-weight:700;color:#555">${i+1}</td>
     <td style="font-weight:700">${esc(r.tm.name)} ${q?`<span class="badge bp">Q</span>`:''}</td>
     <td>${r.mp}</td><td>${r.mw}</td><td>${r.ml}</td><td>${r.gw}</td><td>${r.gl}</td>
     <td style="font-family:ui-monospace,monospace;color:${r.diff>0?'#1a7a3a':r.diff<0?'#ff3b30':'#555'}">${r.diff>0?'+':''}${r.diff}</td>
-    <td>${r.sw||0}</td><td>${r.sl||0}</td>
-    <td style="font-family:ui-monospace,monospace;color:${sd>0?'#1a7a3a':sd<0?'#ff3b30':'#555'}">${sd>0?'+':''}${sd}</td>
     <td><span class="badge bm" style="font-size:.875rem;font-weight:800;font-family:ui-monospace,monospace">${r.pts}</span></td></tr>`;
   });
-  h+=`</tbody></table><div style="font-size:.72rem;color:#555;margin-top:8px;line-height:1.9"><strong>Q</strong> = qualifies for knockout &nbsp;|&nbsp; Win ${needed} of ${GAMES.length} games to win a match<br><strong>Tiebreaker:</strong> 1) Points → 2) Game diff (GW−GL) → 3) Set diff (SW−SL) → 4) Games won</div></div>`;
+  h+=`</tbody></table><div style="font-size:.72rem;color:#555;margin-top:6px">Q = qualifies for knockout. Win ${needed} of ${GAMES.length} games to win a match.</div></div>`;
 
   const pairs=[];
   for(let i=0;i<teams.length;i++) for(let j=i+1;j<teams.length;j++) pairs.push([teams[i],teams[j]]);
@@ -2070,7 +2270,11 @@ function buildStandings(){
         const mg=tm.id===md.teamA?sum.gA:sum.gB,og=tm.id===md.teamA?sum.gB:sum.gA;
         if(mg>0||og>0){mp++;if(mg>=needed){mw++;pts+=2;}else if(og>=needed)ml++;gw+=mg;gl+=og;}
       });
-      trows.push({group:g.name,team:tm.name,matches_played:mp,wins:mw,losses:ml,games_won:gw,games_lost:gl,game_diff:gw-gl,points:pts});
+      const{sw:esw,sl:esl,sdiff:esdiff}=calcSetStats(tm.id,teams);
+      trows.push({group:g.name,team:tm.name,matches_played:mp,wins:mw,losses:ml,
+        games_won:gw,games_lost:gl,game_diff:gw-gl,
+        sets_won:esw,sets_lost:esl,set_diff:esdiff,
+        points:pts});
     });
     trows.sort((a,b)=>b.points-a.points||(b.game_diff-a.game_diff));
     trows.forEach((r,i)=>{r.rank=i+1;r.qualifies=i<2?'Yes':'No';});
@@ -2145,40 +2349,67 @@ async function enterViewerFromUrl(){
   document.getElementById('sync-status').style.display='';
 
   try{
-    // Pull state from Firebase — public read in test mode
     const base=_fbUrl.replace(/\/+$/,'');
-    const nodeUrl=base+'/tournaments/'+CURRENT_T_ID+'.json';
-    const res=await fetch(nodeUrl);
-    if(!res.ok) throw new Error('HTTP '+res.status+' — check Firebase URL and database rules');
-    const rec=await res.json();
-    if(!rec||!rec.state) throw new Error('No tournament data found. Admin must push scores first.');
+    let rec=null;
 
-    S=rec.state;
-    sanitiseS(); // normalise + fix Firebase array coercion
+    // Strategy 1 — exact tournament node by tid
+    if(CURRENT_T_ID&&!CURRENT_T_ID.startsWith('viewer_')){
+      const r=await fetch(base+'/tournaments/'+CURRENT_T_ID+'.json');
+      if(r.ok){const d=await r.json();if(d&&d.state)rec=d;}
+    }
+    // Strategy 2 — scan all tournaments, pick most recently pushed
+    if(!rec){
+      const r=await fetch(base+'/tournaments.json');
+      if(r.ok){
+        const all=await r.json();
+        if(all&&typeof all==='object'){
+          const entries=Object.entries(all)
+            .filter(([,v])=>v&&v.state)
+            .sort(([,a],[,b])=>(b.ts||0)-(a.ts||0));
+          if(entries.length){const[tid,data]=entries[0];CURRENT_T_ID=tid;rec=data;}
+        }
+      }
+    }
+    // Strategy 3 — /latest shortcut written by admin on every push
+    if(!rec){
+      const r=await fetch(base+'/latest.json');
+      if(r.ok){const d=await r.json();if(d&&d.state)rec=d;}
+    }
+
+    if(!rec||!rec.state)
+      throw new Error('No tournament data in Firebase. Ask the admin to open the app, connect sync and tap <strong>Push now</strong>.');
+
+    S=rec.state||{};
+    sanitiseS(); // normalise Firebase arrays + guard every field
     CURRENT_T_ID=rec.tournamentId||CURRENT_T_ID;
     _lastRemoteTs=rec.ts||0;
-
-    // Cache locally so refreshes are instant
     saveTState(CURRENT_T_ID,S);
+    localStorage.setItem(FB_URL_STORE,_fbUrl);
 
-    // Merge into local tournament list if not already there
     const list=getTList();
     if(!list.find(t=>t.id===CURRENT_T_ID)){
       list.unshift({id:CURRENT_T_ID,name:S.config.name,sport:S.config.sport||'',
         emoji:S.config.emoji||'🏆',lastSaved:rec.ts||Date.now()});
       saveTList(list);
     }
-
-    // Save Firebase URL for future use
-    localStorage.setItem(FB_URL_STORE,_fbUrl);
-
     _finishEnterViewer();
-  } catch(err){
+
+  }catch(err){
+    console.error('Viewer load error:',err);
     document.getElementById('mode-banner').innerHTML=
-      `<div style="background:#fff0f0;border-bottom:1px solid #fecaca;padding:.75rem 1rem;color:#c00;font-size:13px;display:flex;align-items:center;gap:8px">
-        <i class="ti ti-alert-circle"></i>
-        <span><strong>Could not load tournament:</strong> ${err.message}.
-        <br><span style="font-size:12px">Make sure Firebase rules allow <strong>public read</strong> (<code>".read": true</code>), then refresh.</span></span>
+      `<div style="background:#fff0f0;border-bottom:1px solid #fecaca;padding:12px 16px;color:#c00;font-size:13px;display:flex;align-items:flex-start;gap:8px">
+        <i class="ti ti-alert-circle" style="flex-shrink:0;margin-top:2px"></i>
+        <div>
+          <strong>Could not load tournament data.</strong><br>
+          <span style="font-size:12px">${err.message}</span>
+          <div style="margin-top:8px;font-size:12px;line-height:1.8">
+            <strong>Checklist:</strong><br>
+            1. Admin must open app → ☁ sync icon → <strong>Push now</strong><br>
+            2. Firebase Console → Realtime Database → Rules → <code style="background:#ffe5e5;padding:1px 4px;border-radius:3px">".read": true</code><br>
+            3. Database URL must end in <code style="background:#ffe5e5;padding:1px 4px;border-radius:3px">.firebaseio.com</code>
+          </div>
+          <button onclick="location.reload()" style="margin-top:10px;padding:7px 16px;background:#0a84ff;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">↺ Retry</button>
+        </div>
       </div>`;
     document.getElementById('tabs-bar').style.visibility='visible';
     document.getElementById('app-tname').textContent='Error';
@@ -2187,7 +2418,7 @@ async function enterViewerFromUrl(){
 }
 
 function _finishEnterViewer(){
-  sanitiseS(); // safe-default every field + fix Firebase array coercion
+  sanitiseS(); // ensures GAMES, MALE_KEYS, FEMALE_KEYS, groups, matches, schedule are safe
 
   document.getElementById('app-tname').textContent=S.config.name;
   const badge=document.getElementById('app-role-badge');
