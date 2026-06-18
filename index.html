@@ -225,7 +225,7 @@ tr:active td{background:#f9f9fb}
 /* ─── WIZARD ─────────────────────────────────────────────────────────── */
 .wizard-step{border:1.5px solid #e5e5ea;border-radius:13px;padding:14px;margin-bottom:10px;background:#fff}
 .wizard-step-title{font-size:.85rem;font-weight:700;margin-bottom:.75rem;display:flex;align-items:center;gap:8px;padding-bottom:.5rem;border-bottom:1px solid #f2f2f7;color:#1c1c1e}
-.game-config-row{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;padding:10px;border:1.5px solid #e5e5ea;border-radius:10px;background:#f9f9fb;margin-bottom:6px}
+.game-config-row{border:1.5px solid #e5e5ea;border-radius:11px;padding:10px 12px;margin-bottom:8px;background:#fff}
 
 /* ─── PREVIEW TABLE ──────────────────────────────────────────────────── */
 .preview-table{width:100%;font-size:.72rem;border-collapse:collapse}
@@ -388,11 +388,43 @@ body.viewer-mode .admin-only{display:none!important}
     </div>
 
     <div class="wizard-step">
-      <div class="wizard-step-title"><span style="background:#0071e3;color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0">3</span> Games (per match)
-        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="addGameRow()"><i class="ti ti-plus"></i> Add game</button>
+      <div class="wizard-step-title">
+        <span style="background:#0071e3;color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0">3</span>
+        Games (per match)
       </div>
+
+      <!-- Quick-add bar -->
+      <div style="background:#f9f9fb;border:1.5px solid #e5e5ea;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+        <div style="font-size:.75rem;font-weight:700;color:#555;margin-bottom:8px">Quick add by game type:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <button class="btn btn-sm" onclick="addGameByType('singles')" style="font-size:.75rem">
+            <i class="ti ti-user"></i> Singles <span style="opacity:.6;font-size:.7rem">(1 player)</span>
+          </button>
+          <button class="btn btn-sm" onclick="addGameByType('mens_doubles')" style="font-size:.75rem">
+            <i class="ti ti-users"></i> Men's Doubles <span style="opacity:.6;font-size:.7rem">(2M)</span>
+          </button>
+          <button class="btn btn-sm" onclick="addGameByType('womens_doubles')" style="font-size:.75rem">
+            <i class="ti ti-users"></i> Women's Doubles <span style="opacity:.6;font-size:.7rem">(2F)</span>
+          </button>
+          <button class="btn btn-sm" onclick="addGameByType('mixed_doubles')" style="font-size:.75rem">
+            <i class="ti ti-users"></i> Mixed Doubles <span style="opacity:.6;font-size:.7rem">(1F+1M)</span>
+          </button>
+          <button class="btn btn-sm" onclick="addGameByType('trio')" style="font-size:.75rem">
+            <i class="ti ti-users-group"></i> Trio <span style="opacity:.6;font-size:.7rem">(3M)</span>
+          </button>
+          <button class="btn btn-sm" onclick="openFab4Config()" style="font-size:.75rem">
+            <i class="ti ti-users-group"></i> Fab 4 <span style="opacity:.6;font-size:.7rem">(2–4 players)</span>
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="addGameByType('custom')" style="font-size:.75rem">
+            <i class="ti ti-plus"></i> Custom
+          </button>
+        </div>
+      </div>
+
       <div id="game-rows-container"></div>
-      <div class="alert alert-warn" style="margin-top:6px"><i class="ti ti-alert-triangle"></i> <span>Configure each game type. You can adjust player slots and scoring type per game.</span></div>
+      <div style="font-size:.72rem;color:#8e8e93;margin-top:6px;padding:0 2px">
+        Player slots are auto-assigned based on game type. Use M1, M2… for male players and F1, F2… for female players.
+      </div>
     </div>
 
     <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
@@ -516,6 +548,57 @@ body.viewer-mode .admin-only{display:none!important}
 <div id="sync-status" onclick="openSyncModal()" title="Firebase sync — click to configure" style="display:none">
   <span id="sync-dot" class="local"></span>
   <span id="sync-label">Local only</span>
+</div>
+
+<!-- ─── FAB 4 CONFIG MINI-SHEET ──────────────────────── -->
+<div class="modal-overlay" id="fab4-config-overlay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-drag"></div>
+    <div class="modal-title"><i class="ti ti-users-group" style="color:#0a84ff"></i> Configure Fab 4</div>
+    <div style="font-size:.82rem;color:#8e8e93;margin-bottom:1.25rem">
+      Fab 4 has 4 players total. Choose how many are female and how many are male.
+    </div>
+
+    <!-- Female count -->
+    <div style="margin-bottom:1rem">
+      <label style="font-size:.82rem;font-weight:700;color:#1c1c1e;margin-bottom:8px;display:block">
+        <span style="background:#fce8f0;color:#9b1d55;border-radius:20px;padding:2px 10px;font-size:.75rem;font-weight:700;margin-right:6px">F</span>
+        Female players
+      </label>
+      <div style="display:flex;align-items:center;gap:0;border:1.5px solid #e5e5ea;border-radius:11px;overflow:hidden;background:#fff;width:fit-content">
+        <button onclick="stepFab4('f',-1)" style="width:44px;height:44px;border:none;background:none;cursor:pointer;font-size:1.3rem;color:#555;display:flex;align-items:center;justify-content:center" id="fab4-f-dec">−</button>
+        <div style="width:48px;text-align:center;font-size:1.2rem;font-weight:700;color:#1c1c1e;border-left:1px solid #e5e5ea;border-right:1px solid #e5e5ea;height:44px;display:flex;align-items:center;justify-content:center" id="fab4-f-val">0</div>
+        <button onclick="stepFab4('f',1)" style="width:44px;height:44px;border:none;background:none;cursor:pointer;font-size:1.3rem;color:#555;display:flex;align-items:center;justify-content:center" id="fab4-f-inc">+</button>
+      </div>
+    </div>
+
+    <!-- Male count -->
+    <div style="margin-bottom:1.5rem">
+      <label style="font-size:.82rem;font-weight:700;color:#1c1c1e;margin-bottom:8px;display:block">
+        <span style="background:#e8f1ff;color:#0064cc;border-radius:20px;padding:2px 10px;font-size:.75rem;font-weight:700;margin-right:6px">M</span>
+        Male players
+      </label>
+      <div style="display:flex;align-items:center;gap:0;border:1.5px solid #e5e5ea;border-radius:11px;overflow:hidden;background:#fff;width:fit-content">
+        <button onclick="stepFab4('m',-1)" style="width:44px;height:44px;border:none;background:none;cursor:pointer;font-size:1.3rem;color:#555;display:flex;align-items:center;justify-content:center" id="fab4-m-dec">−</button>
+        <div style="width:48px;text-align:center;font-size:1.2rem;font-weight:700;color:#1c1c1e;border-left:1px solid #e5e5ea;border-right:1px solid #e5e5ea;height:44px;display:flex;align-items:center;justify-content:center" id="fab4-m-val">4</div>
+        <button onclick="stepFab4('m',1)" style="width:44px;height:44px;border:none;background:none;cursor:pointer;font-size:1.3rem;color:#555;display:flex;align-items:center;justify-content:center" id="fab4-m-inc">+</button>
+      </div>
+    </div>
+
+    <!-- Live preview -->
+    <div style="background:#f9f9fb;border:1.5px solid #e5e5ea;border-radius:10px;padding:10px 12px;margin-bottom:1.25rem">
+      <div style="font-size:.72rem;font-weight:700;color:#8e8e93;margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px">Preview</div>
+      <div id="fab4-preview" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:24px"></div>
+      <div id="fab4-total-warn" style="font-size:.75rem;color:#ff3b30;margin-top:6px;display:none">⚠ Total must be exactly 4 players</div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="flex:1;justify-content:center" onclick="closeFab4Config()">Cancel</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" id="fab4-confirm-btn" onclick="confirmFab4()">
+        <i class="ti ti-check"></i> Add Game
+      </button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="csv-modal">
@@ -661,13 +744,66 @@ function backToLanding(){
 // ══════════════════════════════════════════════════════
 let _gameRows=[];
 
+// ── Game type definitions ─────────────────────────────────────────────
+// Each type defines its player slots by gender prefix and index.
+// Slots use a pool tracker so multiple games of same type get unique player keys.
+const GAME_TYPES={
+  singles:{
+    label:"Singles",icon:"ti-user",
+    slots:[{type:'m'}],
+    defSets:3,special:false,pts:0
+  },
+  mens_doubles:{
+    label:"Men's Doubles",icon:"ti-users",
+    slots:[{type:'m'},{type:'m'}],
+    defSets:3,special:false,pts:0
+  },
+  womens_doubles:{
+    label:"Women's Doubles",icon:"ti-users",
+    slots:[{type:'f'},{type:'f'}],
+    defSets:3,special:false,pts:0
+  },
+  mixed_doubles:{
+    label:"Mixed Doubles",icon:"ti-users",
+    slots:[{type:'f'},{type:'m'}],
+    defSets:3,special:false,pts:0
+  },
+  trio:{
+    label:"Trio",icon:"ti-users-group",
+    slots:[{type:'m'},{type:'m'},{type:'m'}],
+    defSets:3,special:false,pts:0
+  },
+  fab4:{
+    label:"Fab 4",icon:"ti-users-group",
+    slots:[{type:'f'},{type:'m'},{type:'m'},{type:'m'}],
+    defSets:1,special:true,pts:41
+  },
+  custom:{
+    label:"Custom Game",icon:"ti-edit",
+    slots:[{type:'m'}],
+    defSets:3,special:false,pts:0
+  }
+};
+
+// Assign concrete slot keys (m1,m2,f1…) based on what's already used in _gameRows
+function assignSlotKeys(slots){
+  // Count how many of each gender prefix are already used across all existing rows
+  const used={m:0,f:0};
+  _gameRows.forEach(gr=>{
+    (gr.slots||[]).forEach(s=>{ if(s.type==='m')used.m++;else used.f++; });
+  });
+  return slots.map(s=>{
+    used[s.type]++;
+    return{key:s.type+used[s.type],type:s.type};
+  });
+}
+
 function openNewTModal(){
   _gameRows=getDefaultGames();
-  renderGameRows();
-  // update slot preview
   document.getElementById('nt-female').oninput=updateSlotPreview;
   document.getElementById('nt-male').oninput=updateSlotPreview;
   updateSlotPreview();
+  renderGameRows();
   document.getElementById('new-t-modal').classList.add('open');
 }
 function closeNewTModal(){document.getElementById('new-t-modal').classList.remove('open');}
@@ -679,64 +815,262 @@ function updateSlotPreview(){
 }
 
 function getDefaultGames(){
-  return [
-    {id:uid(),label:'Mixed doubles',role:'Versatile Openers',slots:[{key:'f1',type:'f'},{key:'m1',type:'m'}],defSets:3,winSets:2,special:false,pts:0},
-    {id:uid(),label:'Singles',role:'Speed Specialist',slots:[{key:'m2',type:'m'}],defSets:3,winSets:2,special:false,pts:0},
-    {id:uid(),label:"Men's doubles",role:'Defensive Wall',slots:[{key:'m3',type:'m'},{key:'m4',type:'m'}],defSets:3,winSets:2,special:false,pts:0},
-    {id:uid(),label:"Trio",role:'Tactical Trio',slots:[{key:'m5',type:'m'},{key:'m6',type:'m'},{key:'m7',type:'m'}],defSets:3,winSets:2,special:false,pts:0},
-    {id:uid(),label:"Men's doubles",role:'Defensive Wall 2',slots:[{key:'m3',type:'m'},{key:'m4',type:'m'}],defSets:3,winSets:2,special:false,pts:0},
-    {id:uid(),label:'Fab Four 1',role:'P1 + F + P3 + P4',slots:[{key:'m1',type:'m'},{key:'f1',type:'f'},{key:'m3',type:'m'},{key:'m4',type:'m'}],defSets:1,winSets:1,special:true,pts:41},
-    {id:uid(),label:'Fab Four 2',role:'P5 + P6 + P7 + P8',slots:[{key:'m5',type:'m'},{key:'m6',type:'m'},{key:'m7',type:'m'},{key:'m8',type:'m'}],defSets:1,winSets:1,special:true,pts:41},
+  // Reset slot counters by building fresh
+  _gameRows=[];
+  const defaults=[
+    {type:'mixed_doubles'},
+    {type:'singles'},
+    {type:'mens_doubles'},
+    {type:'trio'},
+    {type:'mens_doubles'},
+    {type:'fab4',label:'Fab Four 1',fab4F:1,fab4M:3,
+      slots:[{type:'f'},{type:'m'},{type:'m'},{type:'m'}]},
+    {type:'fab4',label:'Fab Four 2',fab4F:0,fab4M:4,
+      slots:[{type:'m'},{type:'m'},{type:'m'},{type:'m'}]},
   ];
+  defaults.forEach(d=>{
+    const def=GAME_TYPES[d.type];
+    // For fab4, use pre-defined slot composition if provided
+    const templateSlots=d.slots||def.slots;
+    const slots=assignSlotKeys(templateSlots);
+    _gameRows.push({
+      id:uid(),
+      label:d.label||def.label,
+      gameType:d.type,
+      fab4F:d.fab4F!=null?d.fab4F:undefined,
+      fab4M:d.fab4M!=null?d.fab4M:undefined,
+      slots,
+      defSets:def.defSets,
+      winSets:def.special?1:Math.ceil(def.defSets/2),
+      special:def.special,
+      pts:def.pts||0
+    });
+  });
+  return _gameRows;
+}
+
+// Slot badge colour and icon
+function slotBadge(s){
+  return s.type==='f'
+    ?`<span style="display:inline-flex;align-items:center;gap:2px;font-size:.65rem;padding:1px 6px;border-radius:10px;background:#fce8f0;color:#9b1d55;font-weight:700"><i class="ti ti-user"></i>${s.key}</span>`
+    :`<span style="display:inline-flex;align-items:center;gap:2px;font-size:.65rem;padding:1px 6px;border-radius:10px;background:#e8f1ff;color:#0064cc;font-weight:700"><i class="ti ti-user"></i>${s.key}</span>`;
 }
 
 function renderGameRows(){
   const container=document.getElementById('game-rows-container');
   if(!container)return;
+  if(!_gameRows.length){
+    container.innerHTML='<div style="color:#aaa;font-size:.82rem;padding:.75rem;text-align:center">No games yet. Use the buttons above to add game types.</div>';
+    return;
+  }
   let h='';
   _gameRows.forEach((g,i)=>{
-    h+=`<div class="game-config-row" id="gr-${g.id}">
-      <div>
-        <label style="font-size:.72rem;color:#555">Game ${i+1} name</label>
-        <input type="text" value="${esc(g.label)}" placeholder="Game name" style="margin:0;font-size:.82rem" onchange="updateGameRow('${g.id}','label',this.value)">
+    const slotBadges=(g.slots||[]).map(slotBadge).join(' ');
+    const playerCount=g.slots?g.slots.length:0;
+    const typeLabel=GAME_TYPES[g.gameType]?GAME_TYPES[g.gameType].label:g.gameType||'Custom';
+    h+=`<div style="border:1.5px solid #e5e5ea;border-radius:11px;padding:10px 12px;margin-bottom:8px;background:#fff">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <span style="background:#f2f2f7;border-radius:7px;padding:2px 8px;font-size:.72rem;font-weight:700;color:#555">${i+1}</span>
+        <input type="text" value="${esc(g.label)}" placeholder="Game name"
+          style="flex:1;margin:0;font-size:.88rem;font-weight:600;min-width:120px;border:1.5px solid #e5e5ea"
+          onchange="updateGameRow('${g.id}','label',this.value)">
+        <span style="font-size:.72rem;color:#8e8e93;background:#f9f9fb;padding:2px 8px;border-radius:7px;white-space:nowrap">
+          ${typeLabel} · ${playerCount} player${playerCount!==1?'s':''}
+        </span>
+        ${g.gameType==='fab4'?`<button class="btn btn-xs" onclick="editFab4Row('${g.id}')" title="Change Fab 4 composition" style="font-size:.68rem;white-space:nowrap">
+          <i class="ti ti-edit"></i> Edit mix
+        </button>`:''}
+        <button class="btn btn-xs btn-danger" onclick="removeGameRow('${g.id}')" title="Remove game">
+          <i class="ti ti-trash"></i>
+        </button>
       </div>
-      <div>
-        <label style="font-size:.72rem;color:#555">Scoring</label>
-        <select style="margin:0;font-size:.82rem" onchange="updateGameRow('${g.id}','special',this.value==='special')">
-          <option value="sets" ${!g.special?'selected':''}>Sets</option>
-          <option value="special" ${g.special?'selected':''}>Points</option>
-        </select>
+
+      <!-- Player slots visual -->
+      <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:8px">
+        <span style="font-size:.72rem;color:#8e8e93;margin-right:2px">Players:</span>
+        ${slotBadges||'<span style="font-size:.72rem;color:#ccc">none</span>'}
       </div>
-      <div ${g.special?'style="opacity:.4;pointer-events:none"':''}>
-        <label style="font-size:.72rem;color:#555">Sets</label>
-        <input type="number" min="1" max="9" value="${g.defSets}" style="margin:0;font-size:.82rem" onchange="updateGameRow('${g.id}','defSets',+this.value)">
+
+      <!-- Scoring config row -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:90px">
+          <label style="font-size:.7rem;color:#8e8e93">Scoring</label>
+          <select style="margin:0;font-size:.82rem" onchange="updateGameRow('${g.id}','special',this.value==='special')">
+            <option value="sets" ${!g.special?'selected':''}>Sets (best of)</option>
+            <option value="special" ${g.special?'selected':''}>Points total</option>
+          </select>
+        </div>
+        <div style="min-width:70px;${g.special?'opacity:.35;pointer-events:none':''}">
+          <label style="font-size:.7rem;color:#8e8e93">No. of sets</label>
+          <select style="margin:0;font-size:.82rem" onchange="updateGameRow('${g.id}','defSets',+this.value)">
+            ${[1,3,5,7].map(n=>`<option value="${n}" ${g.defSets===n?'selected':''}>${n}</option>`).join('')}
+          </select>
+        </div>
+        <div style="min-width:70px;${!g.special?'opacity:.35;pointer-events:none':''}">
+          <label style="font-size:.7rem;color:#8e8e93">Max points</label>
+          <input type="number" min="1" max="999" value="${g.pts||41}" style="margin:0;font-size:.82rem"
+            onchange="updateGameRow('${g.id}','pts',+this.value)">
+        </div>
       </div>
-      <div ${g.special?'':'style="opacity:.4;pointer-events:none"'}>
-        <label style="font-size:.72rem;color:#555">Max pts</label>
-        <input type="number" min="1" max="999" value="${g.pts||41}" style="margin:0;font-size:.82rem" onchange="updateGameRow('${g.id}','pts',+this.value)">
-      </div>
-      <button class="btn btn-xs btn-danger" onclick="removeGameRow('${g.id}')" title="Remove"><i class="ti ti-trash"></i></button>
     </div>`;
   });
-  if(!_gameRows.length) h='<div style="color:#aaa;font-size:.82rem;padding:.5rem">No games configured yet. Add at least one game.</div>';
   container.innerHTML=h;
 }
 
-function addGameRow(){
-  const f=parseInt(document.getElementById('nt-female').value)||0;
-  const m=parseInt(document.getElementById('nt-male').value)||0;
-  // figure out default slots based on current game count
-  const n=_gameRows.length;
-  const slot=n<f?`f${n+1}`:(n<f+m?`m${n-f+1}`:`m1`);
-  _gameRows.push({id:uid(),label:`Game ${n+1}`,role:'',slots:[{key:slot,type:slot.startsWith('f')?'f':'m'}],defSets:3,winSets:2,special:false,pts:21});
+// Add a game by type — assigns correct slots automatically
+function addGameByType(type){
+  const def=GAME_TYPES[type]||GAME_TYPES.custom;
+  const slots=assignSlotKeys(def.slots);
+  const n=_gameRows.length+1;
+  _gameRows.push({
+    id:uid(),
+    label:def.label,
+    gameType:type,
+    slots,
+    defSets:def.defSets,
+    winSets:def.special?1:Math.ceil(def.defSets/2),
+    special:def.special,
+    pts:def.pts||0
+  });
   renderGameRows();
 }
+
+// ── Fab 4 config modal ────────────────────────────────────────────────
+let _fab4F=0,_fab4M=4; // current counts in the picker
+
+function openFab4Config(){
+  _fab4F=0;_fab4M=4;
+  syncFab4UI();
+  document.getElementById('fab4-config-overlay').classList.add('open');
+}
+
+function closeFab4Config(){
+  document.getElementById('fab4-config-overlay').classList.remove('open');
+}
+
+function stepFab4(gender,delta){
+  const total=4;
+  if(gender==='f'){
+    _fab4F=Math.max(0,Math.min(total,_fab4F+delta));
+    _fab4M=total-_fab4F;            // keep total always 4
+  } else {
+    _fab4M=Math.max(0,Math.min(total,_fab4M+delta));
+    _fab4F=total-_fab4M;
+  }
+  syncFab4UI();
+}
+
+function syncFab4UI(){
+  const total=_fab4F+_fab4M;
+
+  // Update number displays
+  document.getElementById('fab4-f-val').textContent=_fab4F;
+  document.getElementById('fab4-m-val').textContent=_fab4M;
+
+  // Disable buttons at boundaries
+  document.getElementById('fab4-f-dec').disabled=_fab4F<=0;
+  document.getElementById('fab4-f-inc').disabled=_fab4F>=4;
+  document.getElementById('fab4-m-dec').disabled=_fab4M<=0;
+  document.getElementById('fab4-m-inc').disabled=_fab4M>=4;
+
+  // Build preview badges
+  const prev=document.getElementById('fab4-preview');
+  let badges='';
+  for(let i=0;i<_fab4F;i++)
+    badges+=`<span style="display:inline-flex;align-items:center;gap:3px;font-size:.72rem;padding:3px 9px;border-radius:20px;background:#fce8f0;color:#9b1d55;font-weight:700"><i class="ti ti-user"></i> F${i+1}</span>`;
+  for(let i=0;i<_fab4M;i++)
+    badges+=`<span style="display:inline-flex;align-items:center;gap:3px;font-size:.72rem;padding:3px 9px;border-radius:20px;background:#e8f1ff;color:#0064cc;font-weight:700"><i class="ti ti-user"></i> M${i+1}</span>`;
+  if(!badges) badges='<span style="font-size:.78rem;color:#ccc">Select at least 1 player</span>';
+  prev.innerHTML=badges;
+
+  // Warning + confirm button state
+  const warn=document.getElementById('fab4-total-warn');
+  const btn=document.getElementById('fab4-confirm-btn');
+  const valid=total===4&&total>0;
+  warn.style.display=(!valid&&total!==4)?'block':'none';
+  if(btn) btn.disabled=!valid;
+}
+
+function confirmFab4(){
+  if(_fab4F+_fab4M!==4){showToast('Fab 4 must have exactly 4 players total','error');return;}
+
+  const slotDefs=[];
+  for(let i=0;i<_fab4F;i++) slotDefs.push({type:'f'});
+  for(let i=0;i<_fab4M;i++) slotDefs.push({type:'m'});
+
+  let mixLabel='Fab 4';
+  if(_fab4F===0)      mixLabel='Fab 4 (4M)';
+  else if(_fab4M===0) mixLabel='Fab 4 (4F)';
+  else                mixLabel=`Fab 4 (${_fab4F}F+${_fab4M}M)`;
+
+  if(_editingFab4Id){
+    // UPDATE existing row
+    const g=_gameRows.find(x=>x.id===_editingFab4Id);
+    if(g){
+      // Re-assign slot keys in context of ALL other rows (exclude this one)
+      const savedRows=_gameRows;
+      _gameRows=_gameRows.filter(x=>x.id!==_editingFab4Id);
+      const assignedSlots=assignSlotKeys(slotDefs);
+      _gameRows=savedRows; // restore
+      g.slots=assignedSlots;
+      g.fab4F=_fab4F;g.fab4M=_fab4M;
+      g.label=mixLabel;
+      showToast(`Updated to ${mixLabel}`,'success');
+    }
+  } else {
+    // ADD new row
+    const assignedSlots=assignSlotKeys(slotDefs);
+    _gameRows.push({
+      id:uid(),
+      label:mixLabel,
+      gameType:'fab4',
+      fab4F:_fab4F,
+      fab4M:_fab4M,
+      slots:assignedSlots,
+      defSets:1,winSets:1,special:true,pts:41
+    });
+    showToast(`Added ${mixLabel}`,'success');
+  }
+
+  // Reset confirm button text
+  const btn=document.getElementById('fab4-confirm-btn');
+  if(btn)btn.innerHTML='<i class="ti ti-check"></i> Add Game';
+
+  closeFab4Config();
+  _editingFab4Id=null;
+  renderGameRows();
+}
+
+// Edit an existing fab4 row's composition
+let _editingFab4Id=null;
+function editFab4Row(rowId){
+  const g=_gameRows.find(x=>x.id===rowId);
+  if(!g)return;
+  _editingFab4Id=rowId;
+  _fab4F=g.fab4F!=null?g.fab4F:g.slots.filter(s=>s.type==='f').length;
+  _fab4M=g.fab4M!=null?g.fab4M:g.slots.filter(s=>s.type==='m').length;
+  syncFab4UI();
+  // Change confirm button text
+  const btn=document.getElementById('fab4-confirm-btn');
+  if(btn)btn.innerHTML='<i class="ti ti-check"></i> Update Game';
+  document.getElementById('fab4-config-overlay').classList.add('open');
+}
+
+// Legacy stub — "Add game" button now uses addGameByType
+function addGameRow(){ addGameByType('singles'); }
+
 function removeGameRow(id){_gameRows=_gameRows.filter(g=>g.id!==id);renderGameRows();}
+
 function updateGameRow(id,field,val){
   const g=_gameRows.find(x=>x.id===id);
   if(!g)return;
   g[field]=val;
-  if(field==='special'){g.winSets=val?1:Math.ceil(g.defSets/2);}
+  if(field==='special'){
+    g.winSets=val?1:Math.ceil((g.defSets||3)/2);
+  }
+  if(field==='defSets'){
+    if(!g.special) g.winSets=Math.ceil(val/2);
+  }
   renderGameRows();
 }
 
@@ -755,9 +1089,15 @@ function createTournament(){
   const id='t_'+uid();
   // Build GAMES structure with n index
   const gamesConfig=_gameRows.map((g,i)=>{
-    // Build player slots based on female/male counts
     const slots=buildSlotsForGame(g,female,male);
-    return {...g,n:i+1,slots,winSets:g.special?1:Math.ceil(g.defSets/2)};
+    return {
+      ...g,
+      n:i+1,
+      slots,
+      winSets:g.special?1:Math.ceil((g.defSets||3)/2),
+      // Store gameType so scorecard can display the right label
+      gameType:g.gameType||'custom'
+    };
   });
 
   const state={
@@ -779,8 +1119,8 @@ function createTournament(){
 }
 
 function buildSlotsForGame(gameRow,female,male){
-  // Use whatever slots were configured (kept from defaults or user adjusted)
-  return gameRow.slots||[];
+  // Slots are already set by addGameByType / getDefaultGames with correct keys
+  return (gameRow.slots||[]).map(s=>({key:s.key,type:s.type}));
 }
 
 // ══════════════════════════════════════════════════════
@@ -1288,7 +1628,7 @@ function getGroupToppers(){
       const{sw,sl,sdiff}=calcSetStats(r.tm.id,teams);
       r.sw=sw;r.sl=sl;r.sdiff=sdiff;
     });
-    rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.sdiff-a.sdiff)||(b.gw-a.gw)||headToHeadResult(b.tm.id,a.tm.id));
+    rows.sort((a,b)=>b.pts-a.pts||b.sdiff-a.sdiff||b.sw-a.sw||(b.diff-a.diff)||(b.gw-a.gw));
     toppers[g.id]=rows;
   });
   return toppers;
@@ -1835,39 +2175,18 @@ function calcSetStats(tmId,teamList){
     const key=mkey(tmId,opp.id);
     const md=S.matches&&S.matches[key];if(!md)return;
     const tA=teamById(md.teamA),tB=teamById(md.teamB);if(!tA||!tB)return;
-    const iAmA=(tmId===md.teamA);
-    (GAMES||[]).forEach(def=>{
+    (GAMES||[]).filter(def=>!def.special).forEach(def=>{
       const g=md.games&&md.games['g'+def.n];if(!g)return;
-      if(def.special){
-        // Fab Four: a decided game counts as exactly 1 set for the winner
-        const w=gameWin(def,g,tA,tB);
-        if(w===tA.id){if(iAmA)sw++;else sl++;}
-        else if(w===tB.id){if(iAmA)sl++;else sw++;}
-        return;
-      }
       const sets=Array.isArray(g.sets)?g.sets:fbArrToArray(g.sets);
       sets.forEach(sv=>{
         if(!sv||sv.a===''||sv.b==='')return;
         const a=Number(sv.a),b=Number(sv.b);if(a===b)return;
+        const iAmA=(tmId===md.teamA);
         if(iAmA){if(a>b)sw++;else sl++;}else{if(b>a)sw++;else sl++;}
       });
     });
   });
   return{sw,sl,sdiff:sw-sl};
-}
-
-// ── Head-to-head tiebreaker: returns 1 if tmIdA beat tmIdB, -1 if tmIdB beat tmIdA, 0 if no result/tied ──
-function headToHeadResult(tmIdA,tmIdB){
-  const key=mkey(tmIdA,tmIdB);
-  const md=S.matches&&S.matches[key];
-  if(!md)return 0;
-  const tA=teamById(md.teamA),tB=teamById(md.teamB);
-  if(!tA||!tB)return 0;
-  const sum=calcSum(key,tA,tB);
-  if(!sum.winnerId)return 0;
-  if(sum.winnerId===tmIdA)return 1;
-  if(sum.winnerId===tmIdB)return -1;
-  return 0;
 }
 
 function showGS(gid,btn){
@@ -1899,7 +2218,7 @@ function showGS(gid,btn){
     rows.push({tm,mp,mw,ml,pts,gw,gl,gdiff:gw-gl,sw,sl,sdiff});
   });
 
-  rows.sort((a,b)=>b.pts-a.pts||(b.gdiff-a.gdiff)||(b.sdiff-a.sdiff)||(b.gw-a.gw)||headToHeadResult(b.tm.id,a.tm.id));
+  rows.sort((a,b)=>b.pts-a.pts||b.sdiff-a.sdiff||b.sw-a.sw||b.gdiff-a.gdiff||b.gw-a.gw);
   const hasTie=rows.some((r,i)=>i>0&&rows[i-1].pts===r.pts);
 
   let h='<div class="card">';
@@ -1907,11 +2226,10 @@ function showGS(gid,btn){
     h+=`<div style="background:#fff4e6;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:#92400e">
       <div style="font-weight:700;margin-bottom:6px">⚖️ Tie detected — tiebreaker active:</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
-        <span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">1. Points</span>
-        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">2. Game diff</span>
-        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">3. Set diff</span>
-        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">4. Games won</span>
-        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">5. Head-to-head</span>
+        <span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">1. Match pts</span>
+        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">2. Set diff</span>
+        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">3. Sets won</span>
+        <span>→</span><span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;font-weight:700">4. Game diff</span>
       </div>
     </div>`;
   }
@@ -2005,12 +2323,69 @@ function showGS(gid,btn){
   <div style="font-size:.82rem;color:#555;line-height:1.9">
     <div><b>Match win:</b> Win ${needed} of ${gLen} games → <b>2 points</b></div>
     <div style="font-weight:700;margin:8px 0 4px">Tiebreaker order (when points are equal)</div>
-    ${['Game difference (GW − GL)','Set difference (SW − SL)','Games won','Head-to-head result']
+    ${['Set difference (SW − SL)','Sets won','Game difference','Games won']
       .map((t,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
         <span style="background:#0a84ff;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0">${i+1}</span>
         <span>${t}</span></div>`).join('')}
   </div></div>`;
 
+  el.innerHTML=h;
+}function showGS(gid,btn){
+  document.querySelectorAll('.group-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  const teams=S.teams[gid]||[];const el=document.getElementById('gs-body');
+  if(!teams.length){el.innerHTML='<div style="padding:1rem;color:#aaa">No teams.</div>';return;}
+  const needed=Math.floor(GAMES.length/2)+1;
+  let rows=[];
+  teams.forEach(tm=>{
+    let mp=0,mw=0,ml=0,pts=0,gw=0,gl=0;
+    teams.forEach(opp=>{
+      if(opp.id===tm.id)return;const key=mkey(tm.id,opp.id);const md=S.matches[key];if(!md)return;
+      const tA=teamById(md.teamA),tB=teamById(md.teamB);const sum=calcSum(key,tA,tB);
+      const mg=tm.id===md.teamA?sum.gA:sum.gB,og=tm.id===md.teamA?sum.gB:sum.gA;
+      if(mg>0||og>0){mp++;if(mg>=needed){mw++;pts+=2;}else if(og>=needed)ml++;gw+=mg;gl+=og;}
+    });
+    rows.push({tm,mp,mw,ml,pts,gw,gl,diff:gw-gl});
+  });
+  rows.sort((a,b)=>b.pts-a.pts||(b.diff-a.diff)||(b.gw-a.gw));
+  let h=`<div class="card"><table>
+  <thead><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>L</th><th>GW</th><th>GL</th><th>+/-</th><th>Pts</th></tr></thead><tbody>`;
+  rows.forEach((r,i)=>{
+    const q=i<2;
+    h+=`<tr><td style="font-weight:700;color:#555">${i+1}</td>
+    <td style="font-weight:700">${esc(r.tm.name)} ${q?`<span class="badge bp">Q</span>`:''}</td>
+    <td>${r.mp}</td><td>${r.mw}</td><td>${r.ml}</td><td>${r.gw}</td><td>${r.gl}</td>
+    <td style="font-family:ui-monospace,monospace;color:${r.diff>0?'#1a7a3a':r.diff<0?'#ff3b30':'#555'}">${r.diff>0?'+':''}${r.diff}</td>
+    <td><span class="badge bm" style="font-size:.875rem;font-weight:800;font-family:ui-monospace,monospace">${r.pts}</span></td></tr>`;
+  });
+  h+=`</tbody></table><div style="font-size:.72rem;color:#555;margin-top:6px">Q = qualifies for knockout. Win ${needed} of ${GAMES.length} games to win a match.</div></div>`;
+
+  const pairs=[];
+  for(let i=0;i<teams.length;i++) for(let j=i+1;j<teams.length;j++) pairs.push([teams[i],teams[j]]);
+  if(pairs.length){
+    h+=`<div class="card"><div class="card-title"><i class="ti ti-calendar"></i> Fixtures</div>`;
+    pairs.forEach(([tA,tB])=>{
+      const key=mkey(tA.id,tB.id);const md=S.matches[key];
+      const sum=md?calcSum(key,teamById(md.teamA),teamById(md.teamB)):{gA:0,gB:0,done:false,leader:''};
+      const sched=S.schedule.find(s=>s.matchKey===key);
+      const dots=GAMES.map(def=>{if(!md)return`<span class="seq-dot">${def.n}</span>`;const w=gameWin(def,md.games['g'+def.n],tA,tB);return`<span class="seq-dot ${w===tA.id?'won':w===tB.id?'lost':''}">${def.n}</span>`;}).join('');
+      h+=`<div style="display:flex;align-items:center;gap:10px;padding:.625rem 0;border-bottom:1px solid #e5e5ea;flex-wrap:wrap">
+      <div style="min-width:160px"><div style="font-size:.85rem;font-weight:700">${esc(tA.name)} vs ${esc(tB.name)}</div>
+      ${sched?`<div style="font-size:.72rem;color:#555">${sched.date?formatDate(sched.date):'TBD'}${sched.time?' · '+sched.time:''}${sched.venue?' · '+esc(sched.venue):''}</div>`:''}
+      </div><div style="display:flex;gap:3px">${dots}</div>
+      <span style="margin-left:auto;font-size:.85rem;font-weight:700;font-family:ui-monospace,monospace">${sum.gA}–${sum.gB}</span>
+      ${sum.done?`<span class="badge bs"><i class="ti ti-trophy"></i> ${esc(sum.leader)}</span>`:`<span class="badge bg">Pending</span>`}
+      ${tA&&tB?`<button class="btn btn-sm" onclick="goToMatchup('${tA.id}','${tB.id}')"><i class="ti ti-${IS_ADMIN?'edit':'eye'}"></i></button>`:''}
+      </div>`;
+    });h+=`</div>`;
+  }
+
+  // Scoring rules
+  h+=`<div class="card"><div class="card-title"><i class="ti ti-info-circle"></i> Scoring rules</div>
+  <div style="font-size:.82rem;color:#555;line-height:2">
+  <div>• Win ${needed} of ${GAMES.length} games → <strong>2 match points</strong></div>
+  ${GAMES.filter(g=>!g.special).map(g=>`<div>• Game ${g.n} (${esc(g.label)}): Best of ${g.defSets}, first to ${g.winSets} sets wins</div>`).join('')}
+  ${GAMES.filter(g=>g.special).map(g=>`<div>• Game ${g.n} (${esc(g.label)}): Direct points scoring (max ${g.pts})</div>`).join('')}
+  </div></div>`;
   el.innerHTML=h;
 }
 
